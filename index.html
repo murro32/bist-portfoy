@@ -12,9 +12,7 @@
     margin: 0;
     padding: 15px;
   }
-  h1 {
-    text-align: center;
-  }
+  h1 { text-align: center; }
   .card {
     background: #1e293b;
     padding: 15px;
@@ -25,8 +23,8 @@
   .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
     flex-wrap: wrap;
+    align-items: flex-start;
   }
   .timebox {
     text-align: right;
@@ -36,7 +34,7 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 600px;
+    min-width: 700px;
   }
   th, td {
     padding: 8px;
@@ -44,22 +42,11 @@
     border-bottom: 1px solid #334155;
     white-space: nowrap;
   }
-  th {
-    background: #334155;
-  }
-  tr:nth-child(even) {
-    background: #1e293b;
-  }
-  .positive {
-    color: #22c55e;
-  }
-  .negative {
-    color: #ef4444;
-  }
-  .big {
-    font-size: 22px;
-    font-weight: bold;
-  }
+  th { background: #334155; }
+  tr:nth-child(even) { background: #1e293b; }
+  .positive { color: #22c55e; }
+  .negative { color: #ef4444; }
+  .big { font-size: 22px; font-weight: bold; }
   button {
     padding: 10px;
     width: 100%;
@@ -70,12 +57,8 @@
     margin-top: 10px;
     cursor: pointer;
   }
-  button:hover {
-    background: #1d4ed8;
-  }
-  .weekly-table {
-    overflow-x:auto;
-  }
+  button:hover { background: #1d4ed8; }
+  .weekly-table { overflow-x:auto; }
 </style>
 </head>
 <body>
@@ -101,11 +84,11 @@
 <tr>
   <th>Hisse</th>
   <th>Lot</th>
-  <th>Maliyet (TL)</th>
-  <th>Güncel Hisse Değeri (TL)</th>
-  <th>Anlık Fiyat</th>
-  <th>K/Z (TL)</th>
-  <th>K/Z (%)</th>
+  <th>Maliyet(TL)</th>
+  <th>Güncel Hisse Değeri(TL)</th>
+  <th>Anlık Fiyat(TL)</th>
+  <th>K/Z(TL)</th>
+  <th>K/Z(%)</th>
 </tr>
 </thead>
 <tbody id="portfolioBody"></tbody>
@@ -129,14 +112,8 @@ const portfolio = [
   { code: "ASELS", lot: 50, cost: 3180.50 }
 ];
 
-// Format TL sayı, Türkçe locale ile, ondalıklı, ama TL yazmaz (sadece sayı)
 function formatNumber(num) {
   return num.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-// Format TL yazanlar için (TL ekler)
-function formatTL(num) {
-  return formatNumber(num) + " TL";
 }
 
 function updateClock() {
@@ -144,184 +121,11 @@ function updateClock() {
   document.getElementById("liveClock").innerText = "Anlık Saat: " + now.toLocaleTimeString();
 }
 
-async function updatePortfolio() {
-  const tbody = document.getElementById("portfolioBody");
-  tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
-
-  const symbols = portfolio.map((s) => s.code).join(",");
-
-  try {
-    const response = await fetch(`/api/price?symbols=${symbols}`);
-    const prices = await response.json();
-
-    tbody.innerHTML = "";
-
-    let totalValue = 0;
-    let totalCost = 0;
-
-    for (let stock of portfolio) {
-      const price = prices[stock.code];
-
-      if (!price) {
-        tbody.innerHTML += `
-          <tr>
-            <td>${stock.code}</td>
-            <td colspan="6">Veri alınamadı</td>
-          </tr>`;
-        continue;
-      }
-
-      const value = price * stock.lot;
-      const profitTL = value - stock.cost;
-      const profitPercent = (profitTL / stock.cost) * 100;
-
-      totalValue += value;
-      totalCost += stock.cost;
-
-      tbody.innerHTML += `
-  <tr>
-    <td>${stock.code}</td>
-    <td>${stock.lot}</td>
-    <td>${formatTL(stock.cost)}</td>             <!-- TL yazılı -->
-    <td>${formatTL(value)}</td>                  <!-- TL yazılı -->
-    <td>${formatNumber(price)}</td>               <!-- Sadece sayı -->
-    <td class="${profitTL >= 0 ? "positive" : "negative"}">${formatNumber(profitTL)}</td> <!-- Sadece sayı -->
-    <td class="${profitPercent >= 0 ? "positive" : "negative"}">${profitPercent.toFixed(2)}%</td>
-  </tr>`;
-
-    }
-
-    const totalProfitTL = totalValue - totalCost;
-    const totalProfitPercent = (totalProfitTL / totalCost) * 100;
-
-    document.getElementById("totalValue").innerText =
-      "Toplam Değer: " + formatTL(totalValue);
-
-    document.getElementById("totalProfit").innerHTML =
-      "Toplam Kar: <span class='" + (totalProfitTL >= 0 ? "positive" : "negative") + "'>" +
-      formatTL(totalProfitTL) + " (" + totalProfitPercent.toFixed(2) + "%)</span>";
-
-    document.getElementById("lastUpdate").innerText =
-      "Son Yenilenme: " + new Date().toLocaleTimeString();
-
-    // Haftalık tabloyu güncelle
-    renderWeeklyTable();
-
-  } catch (error) {
-    document.getElementById("totalValue").innerText = "API Hatası";
-    tbody.innerHTML = "<tr><td colspan='7'>Veri alınamadı</td></tr>";
-  }
-}
-
-// LocalStorage'dan haftalık veriyi oku veya boş obje döndür
-function getWeeklyData() {
-  return JSON.parse(localStorage.getItem("weeklyData") || "{}");
-}
-
-// Haftalık veriyi kaydet
-function setWeeklyData(data) {
-  localStorage.setItem("weeklyData", JSON.stringify(data));
-}
-
-// Haftalık tabloyu oluştur
-function renderWeeklyTable() {
-  const weeklyData = getWeeklyData();
-  const weeklyHead = document.getElementById("weeklyHead");
-  const weeklyBody = document.getElementById("weeklyBody");
-
-  // Sütun başlıkları: önce "Anlık Hisse Değeri (TL)" sonra tarih sütunları (sıralı)
-  let dates = Object.keys(weeklyData).sort((a, b) => new Date(a) - new Date(b));
-  if (dates.length === 0) {
-    weeklyHead.innerHTML = "<tr><th>Anlık Hisse Değeri (TL)</th><th>Henüz kayıt yok</th></tr>";
-    weeklyBody.innerHTML = "";
-    return;
-  }
-
-  // Başlık satırı
-  let headerRow = "<tr><th>Hisse</th>";
-  for (let date of dates) {
-    // Tarih formatı: gg.aa.yyyy
-    const dt = new Date(date);
-    const formattedDate = dt.toLocaleDateString("tr-TR");
-    headerRow += `<th>${formattedDate}</th>`;
-  }
-  headerRow += "</tr>";
-  weeklyHead.innerHTML = headerRow;
-
-  // Satırları hisse bazında oluştur
-  let rows = "";
-  for (let stock of portfolio) {
-    rows += `<tr><td>${stock.code}</td>`;
-
-    for (let i = 0; i < dates.length; i++) {
-      const date = dates[i];
-      const valuesForDate = weeklyData[date] || {};
-      const currentValue = valuesForDate[stock.code];
-
-      if (currentValue === undefined) {
-        rows += "<td>-</td>";
-      } else {
-        // Renk kontrolü: Önceki gün ile karşılaştır
-        let className = "";
-        if (i > 0) {
-          const prevDate = dates[i - 1];
-          const prevValue = weeklyData[prevDate]?.[stock.code];
-          if (prevValue !== undefined) {
-            className = currentValue > prevValue ? "positive" : (currentValue < prevValue ? "negative" : "");
-          }
-        }
-        rows += `<td class="${className}">${formatNumber(currentValue)}</td>`;
-      }
-    }
-    rows += "</tr>";
-  }
-  weeklyBody.innerHTML = rows;
-}
-
-// Haftalık veriyi kaydet (bugünün tarihi ve o anki güncel hisse değeri)
-function saveWeekly() {
-  const today = new Date();
-  const todayKey = today.toISOString().slice(0, 10); // yyyy-mm-dd formatı
-
-  const weeklyData = getWeeklyData();
-
-  if (!weeklyData[todayKey]) weeklyData[todayKey] = {};
-
-  // Güncel hisse değerleri alınır
-  const tbody = document.getElementById("portfolioBody");
-  // portfolio array'inden koda göre fiyatları bulacağız
-
-  portfolio.forEach(stock => {
-    // Güncel değeri tabloya göre alıyoruz, fiyat değil, değer (lot x fiyat)
-    // Ancak bizim tabloda hücre yoksa - koyuyoruz, kontrol et
-    // Alternatif: En son fetch edilen fiyatları saklamak lazım
-    // Biz burada prices objesini global yapabiliriz:
-  });
-
-  // Güncel fiyatları globalde tutuyoruz ki burda kullanalım
-  // Eğer yoksa uyarı ver
-  if (!window.latestPrices) {
-    alert("Güncel fiyatlar henüz yüklenmedi, lütfen bekleyin.");
-    return;
-  }
-
-  // Bugünün hisse değerini hesaplayıp kaydet
-  portfolio.forEach(stock => {
-    const price = window.latestPrices[stock.code];
-    if (!price) return;
-    const value = price * stock.lot;
-    weeklyData[todayKey][stock.code] = value;
-  });
-
-  setWeeklyData(weeklyData);
-  renderWeeklyTable();
-}
-
 async function fetchPrices(symbols) {
   try {
     const response = await fetch(`/api/price?symbols=${symbols}`);
     const prices = await response.json();
-    window.latestPrices = prices; // globalde tut
+    window.latestPrices = prices;
     return prices;
   } catch {
     window.latestPrices = null;
@@ -333,30 +137,21 @@ async function updatePortfolioAndPrices() {
   const tbody = document.getElementById("portfolioBody");
   tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
 
-  const symbols = portfolio.map((s) => s.code).join(",");
+  const symbols = portfolio.map(s => s.code).join(",");
   const prices = await fetchPrices(symbols);
   if (!prices) {
-    document.getElementById("totalValue").innerText = "API Hatası";
     tbody.innerHTML = "<tr><td colspan='7'>Veri alınamadı</td></tr>";
+    document.getElementById("totalValue").innerText = "API Hatası";
     return;
   }
 
   tbody.innerHTML = "";
-
   let totalValue = 0;
   let totalCost = 0;
 
   for (let stock of portfolio) {
     const price = prices[stock.code];
-
-    if (!price) {
-      tbody.innerHTML += `
-        <tr>
-          <td>${stock.code}</td>
-          <td colspan="6">Veri alınamadı</td>
-        </tr>`;
-      continue;
-    }
+    if (!price) continue;
 
     const value = price * stock.lot;
     const profitTL = value - stock.cost;
@@ -369,37 +164,94 @@ async function updatePortfolioAndPrices() {
       <tr>
         <td>${stock.code}</td>
         <td>${stock.lot}</td>
-        <td>${formatTL(stock.cost)}</td>
-        <td>${formatTL(value)}</td>
+        <td>${formatNumber(stock.cost)}</td>
+        <td>${formatNumber(value)}</td>
         <td>${formatNumber(price)}</td>
-        <td class="${profitTL >= 0 ? "positive" : "negative"}">${formatTL(profitTL)}</td>
+        <td class="${profitTL >= 0 ? "positive" : "negative"}">${formatNumber(profitTL)}</td>
         <td class="${profitPercent >= 0 ? "positive" : "negative"}">${profitPercent.toFixed(2)}%</td>
       </tr>`;
   }
 
   const totalProfitTL = totalValue - totalCost;
   const totalProfitPercent = (totalProfitTL / totalCost) * 100;
-
-  document.getElementById("totalValue").innerText =
-    "Toplam Değer: " + formatTL(totalValue);
-
+  document.getElementById("totalValue").innerText = "Toplam Değer: " + formatNumber(totalValue);
   document.getElementById("totalProfit").innerHTML =
     "Toplam Kar: <span class='" + (totalProfitTL >= 0 ? "positive" : "negative") + "'>" +
-    formatTL(totalProfitTL) + " (" + totalProfitPercent.toFixed(2) + "%)</span>";
+    formatNumber(totalProfitTL) + " (" + totalProfitPercent.toFixed(2) + "%)</span>";
 
-  document.getElementById("lastUpdate").innerText =
-    "Son Yenilenme: " + new Date().toLocaleTimeString();
+  document.getElementById("lastUpdate").innerText = "Son Yenilenme: " + new Date().toLocaleTimeString();
+  renderWeeklyTable();
+}
 
-  // Haftalık tablo güncellendi
+// Haftalık veriyi localStorage'dan al veya boş obje oluştur
+function getWeeklyData() {
+  return JSON.parse(localStorage.getItem("weeklyData") || "{}");
+}
+function setWeeklyData(data) {
+  localStorage.setItem("weeklyData", JSON.stringify(data));
+}
+
+function renderWeeklyTable() {
+  const weeklyData = getWeeklyData();
+  const weeklyHead = document.getElementById("weeklyHead");
+  const weeklyBody = document.getElementById("weeklyBody");
+
+  const dates = Object.keys(weeklyData).sort((a,b) => new Date(a) - new Date(b));
+  if (dates.length === 0) {
+    weeklyHead.innerHTML = "<tr><th>Anlık Hisse Değeri(TL)</th><th>Henüz kayıt yok</th></tr>";
+    weeklyBody.innerHTML = "";
+    return;
+  }
+
+  let headerRow = "<tr><th>Hisse</th>";
+  for (let date of dates) {
+    headerRow += `<th>${new Date(date).toLocaleDateString("tr-TR")}</th>`;
+  }
+  headerRow += "</tr>";
+  weeklyHead.innerHTML = headerRow;
+
+  let rows = "";
+  for (let stock of portfolio) {
+    rows += `<tr><td>${stock.code}</td>`;
+    for (let i = 0; i < dates.length; i++) {
+      const date = dates[i];
+      const value = weeklyData[date]?.[stock.code];
+      if (value === undefined) {
+        rows += "<td>-</td>";
+      } else {
+        let className = "";
+        if (i > 0) {
+          const prevValue = weeklyData[dates[i-1]]?.[stock.code];
+          if (prevValue !== undefined) className = value > prevValue ? "positive" : (value < prevValue ? "negative" : "");
+        }
+        rows += `<td class="${className}">${formatNumber(value)}</td>`;
+      }
+    }
+    rows += "</tr>";
+  }
+  weeklyBody.innerHTML = rows;
+}
+
+function saveWeekly() {
+  if (!window.latestPrices) {
+    alert("Güncel fiyatlar henüz yüklenmedi, lütfen bekleyin.");
+    return;
+  }
+  const todayKey = new Date().toISOString().slice(0,10);
+  const weeklyData = getWeeklyData();
+  if (!weeklyData[todayKey]) weeklyData[todayKey] = {};
+  portfolio.forEach(stock => {
+    const price = window.latestPrices[stock.code];
+    weeklyData[todayKey][stock.code] = price * stock.lot;
+  });
+  setWeeklyData(weeklyData);
   renderWeeklyTable();
 }
 
 updateClock();
-setInterval(updateClock, 1000);
-
+setInterval(updateClock,1000);
 updatePortfolioAndPrices();
-setInterval(updatePortfolioAndPrices, 60000);
-
+setInterval(updatePortfolioAndPrices,60000);
 renderWeeklyTable();
 
 </script>
