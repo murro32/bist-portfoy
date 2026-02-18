@@ -60,7 +60,7 @@ const portfolio = [
 
 async function fetchPrice(symbol){
 try{
-let url = https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=1d;
+let url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=1d`;
 let res = await fetch(url);
 
 if(!res.ok) throw new Error("API Hatası");
