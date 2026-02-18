@@ -4,19 +4,64 @@
 <meta charset="UTF-8">
 <title>BIST Portföy Takip</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
-body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
+body { 
+  font-family: Arial; 
+  background:#0f172a; 
+  color:white; 
+  margin:0; 
+  padding:15px;
+}
 h1 { text-align:center; }
-.card { background:#1e293b; padding:15px; border-radius:10px; margin-bottom:15px;}
-table { width:100%; border-collapse: collapse; }
-th, td { padding:8px; text-align:center; }
+
+.card { 
+  background:#1e293b; 
+  padding:15px; 
+  border-radius:10px; 
+  margin-bottom:15px;
+}
+
+table { 
+  width:100%; 
+  border-collapse: collapse; 
+}
+
+th, td { 
+  padding:8px; 
+  text-align:center; 
+}
+
 th { background:#334155; }
-tr:nth-child(even){background:#1e293b;}
+
+tr:nth-child(even){ background:#1e293b; }
+
 .positive { color:#22c55e; }
 .negative { color:#ef4444; }
-.big { font-size:22px; font-weight:bold; }
-button { padding:10px; width:100%; background:#2563eb; color:white; border:none; border-radius:8px; margin-top:10px; cursor:pointer;}
+
+.big { 
+  font-size:22px; 
+  font-weight:bold; 
+}
+
+button { 
+  padding:10px; 
+  width:100%; 
+  background:#2563eb; 
+  color:white; 
+  border:none; 
+  border-radius:8px; 
+  margin-top:10px; 
+  cursor:pointer;
+}
+
 button:hover { background:#1d4ed8; }
+
+#lastUpdate{
+  font-size:12px;
+  opacity:0.7;
+  margin-top:5px;
+}
 </style>
 </head>
 <body>
@@ -24,8 +69,9 @@ button:hover { background:#1d4ed8; }
 <h1>📊 Portföy Takip</h1>
 
 <div class="card">
-<div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
-<div class="big" id="totalProfit">Toplam Kar: -</div>
+  <div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
+  <div class="big" id="totalProfit">Toplam Kar: -</div>
+  <div id="lastUpdate"></div>
 </div>
 
 <div class="card">
@@ -52,89 +98,80 @@ button:hover { background:#1d4ed8; }
 
 <script>
 
+// PORTFÖYÜN
 const portfolio = [
   { code:"THYAO", lot:50, cost:11930.00 },
   { code:"TUPRS", lot:70, cost:8649.90 },
   { code:"ASELS", lot:50, cost:3180.50 }
 ];
 
-async function fetchPrice(symbol){
-  try{
-    const url = `https://bist-portfoy.vercel.app/api/price?symbol=${symbol}`;
-    const response = await fetch(url);
-
-    if(!response.ok){
-      throw new Error("API Hatası");
-    }
-
-    const data = await response.json();
-
-    if(!data.chart || !data.chart.result){
-      throw new Error("Veri Yok");
-    }
-
-    const result = data.chart.result[0];
-    const price = result.meta.regularMarketPrice;
-
-    return price;
-
-  } catch(error){
-    console.log(symbol + " veri alınamadı:", error);
-    return null;
-  }
-}
-
 async function updatePortfolio(){
+
   const tbody = document.getElementById("portfolioBody");
-  tbody.innerHTML="";
-  let totalValue=0;
-  let totalCost=0;
+  tbody.innerHTML="<tr><td colspan='7'>Yükleniyor...</td></tr>";
 
-  for(let stock of portfolio){
-    const price = await fetchPrice(stock.code);
+  const symbols = portfolio.map(s => s.code).join(",");
 
-    if(price === null){
+  try{
+
+    const response = await fetch(`/api/price?symbols=${symbols}`);
+    const prices = await response.json();
+
+    tbody.innerHTML="";
+
+    let totalValue=0;
+    let totalCost=0;
+
+    for(let stock of portfolio){
+
+      const price = prices[stock.code];
+
+      if(!price){
+        tbody.innerHTML += `
+        <tr>
+        <td>${stock.code}</td>
+        <td colspan="6">Veri alınamadı</td>
+        </tr>`;
+        continue;
+      }
+
+      const value = price * stock.lot;
+      const profit = value - stock.cost;
+      const percent = (profit / stock.cost) * 100;
+
+      totalValue += value;
+      totalCost += stock.cost;
+
       tbody.innerHTML += `
       <tr>
       <td>${stock.code}</td>
-      <td colspan="6">Veri alınamadı</td>
+      <td>${stock.lot}</td>
+      <td>${stock.cost.toFixed(2)}</td>
+      <td>${price.toFixed(2)}</td>
+      <td>${value.toFixed(2)}</td>
+      <td class="${profit>=0?'positive':'negative'}">${profit.toFixed(2)}</td>
+      <td class="${percent>=0?'positive':'negative'}">${percent.toFixed(2)}%</td>
       </tr>`;
-      continue;
     }
 
-    const value = price * stock.lot;
-    const profit = value - stock.cost;
-    const percent = (profit / stock.cost) * 100;
+    const totalProfit = totalValue - totalCost;
+    const totalPercent = (totalProfit / totalCost) * 100;
 
-    totalValue += value;
-    totalCost += stock.cost;
+    document.getElementById("totalValue").innerText =
+      "Toplam Değer: " + totalValue.toFixed(2) + " TL";
 
-    tbody.innerHTML += `
-    <tr>
-    <td>${stock.code}</td>
-    <td>${stock.lot}</td>
-    <td>${stock.cost.toFixed(2)}</td>
-    <td>${price.toFixed(2)}</td>
-    <td>${value.toFixed(2)}</td>
-    <td class="${profit>=0?'positive':'negative'}">${profit.toFixed(2)}</td>
-    <td class="${percent>=0?'positive':'negative'}">${percent.toFixed(2)}%</td>
-    </tr>`;
+    document.getElementById("totalProfit").innerHTML =
+      "Toplam Kar: <span class='"+(totalProfit>=0?'positive':'negative')+"'>" +
+      totalProfit.toFixed(2) + " TL (" + totalPercent.toFixed(2) + "%)</span>";
+
+    document.getElementById("lastUpdate").innerText =
+      "Son Güncelleme: " + new Date().toLocaleTimeString();
+
+  }catch(error){
+
+    document.getElementById("totalValue").innerText="API Hatası";
+    tbody.innerHTML="<tr><td colspan='7'>Veri alınamadı</td></tr>";
   }
-
-  if(totalCost === 0){
-    document.getElementById("totalValue").innerText="Veri alınamadı";
-    return;
-  }
-
-  const totalProfit = totalValue - totalCost;
-  const totalPercent = (totalProfit / totalCost) * 100;
-
-  document.getElementById("totalValue").innerText =
-  "Toplam Değer: " + totalValue.toFixed(2) + " TL";
-
-  document.getElementById("totalProfit").innerHTML =
-  "Toplam Kar: <span class='"+(totalProfit>=0?'positive':'negative')+"'>" +
-  totalProfit.toFixed(2) + " TL (" + totalPercent.toFixed(2) + "%)</span>";
 }
 
 function saveWeekly(){
@@ -157,7 +194,7 @@ function showWeekly(){
 
 updatePortfolio();
 showWeekly();
-setInterval(updatePortfolio,20000);
+setInterval(updatePortfolio,60000); // 60 saniye refresh
 
 </script>
 
