@@ -5,20 +5,19 @@
 <title>BIST Portföy Takip</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
-  h1 { text-align:center; }
-  .card { background:#1e293b; padding:15px; border-radius:10px; margin-bottom:15px; overflow-x:auto; }
-  table { width:100%; border-collapse: collapse; min-width:700px; }
-  th, td { padding:8px; text-align:center; border-bottom:1px solid #334155; white-space: nowrap; }
-  th { background:#334155; }
-  tr:nth-child(even){background:#1e293b;}
-  .positive { color:#22c55e; }
-  .negative { color:#ef4444; }
-  .big { font-size:22px; font-weight:bold; }
-  .timebox { text-align:right; font-size:13px; opacity:0.8; }
-  button { padding:10px; width:100%; background:#2563eb; color:white; border:none; border-radius:8px; margin-top:10px; cursor:pointer;}
-  button:hover { background:#1d4ed8; }
-  .weekly-table { overflow-x:auto; margin-top:10px; }
+body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
+h1 { text-align:center; }
+.card { background:#1e293b; padding:15px; border-radius:10px; margin-bottom:15px; overflow-x:auto; }
+table { width:100%; border-collapse: collapse; min-width:700px; }
+th, td { padding:8px; text-align:center; border-bottom:1px solid #334155; white-space: nowrap; }
+th { background:#334155; }
+tr:nth-child(even){background:#1e293b;}
+.positive { color:#22c55e; }
+.negative { color:#ef4444; }
+.big { font-size:22px; font-weight:bold; }
+.timebox { text-align:right; font-size:13px; opacity:0.8; }
+button { padding:10px; width:100%; background:#2563eb; color:white; border:none; border-radius:8px; margin-top:10px; cursor:pointer;}
+button:hover { background:#1d4ed8; }
 </style>
 </head>
 <body>
@@ -50,18 +49,18 @@
 </div>
 
 <div class="card">
-<h3>Haftalık Kayıt</h3>
+<h3>Günlük Portföy Kaydı</h3>
 <div class="weekly-table">
-<table id="weeklyTable">
-  <thead id="weeklyHead"></thead>
-  <tbody id="weeklyBody"></tbody>
+<table id="dailyTable">
+  <thead id="dailyHead"></thead>
+  <tbody id="dailyBody"></tbody>
 </table>
 </div>
 </div>
 
 <script>
 // ---------------------
-// Portföy ve maliyet hesaplama
+// Portföy
 const portfolio = [
   { code:"THYAO", lot:50, cost:11930.00 },
   { code:"TUPRS", lot:70, cost:8649.90 },
@@ -98,7 +97,7 @@ async function fetchPrices(symbols) {
 }
 
 // ---------------------
-// Portföy tablosunu güncelle (Güncel Hisse Değeri büyükten küçüğe)
+// Portföy tablosunu güncelle
 async function updatePortfolio() {
   const tbody = document.getElementById("portfolioBody");
   tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
@@ -149,52 +148,60 @@ async function updatePortfolio() {
 
   document.getElementById("lastUpdate").innerText = "Son Yenilenme: " + new Date().toLocaleTimeString();
 
-  // Haftalık kaydı otomatik yap
-  saveWeeklyAuto(data);
+  // Günlük 18:30 kaydını kontrol et
+  tryDailyEndOfDaySave(data);
 }
 
-// ---------------------
-// Haftalık tablo - otomatik kayıt
-function saveWeeklyAuto(currentData){
-  const todayKey = new Date().toISOString().split("T")[0];
-  const weeklyLog = JSON.parse(localStorage.getItem("weeklyLog") || "{}");
+// ---------------------------
+// Günlük 18:30 kaydı
+function tryDailyEndOfDaySave(currentData){
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
 
-  if(!weeklyLog[todayKey]){
-    weeklyLog[todayKey] = {};
+  // Saat 18:30 civarında çalışacak
+  if(hour === 18 && minute === 30){
+    const dailyLog = JSON.parse(localStorage.getItem("dailyLog") || "{}");
+    const dateKey = now.toISOString().split("T")[0]; // yyyy-mm-dd
+
+    if(dailyLog[dateKey]) return;
+
+    dailyLog[dateKey] = {};
     currentData.forEach(stock => {
-      weeklyLog[todayKey][stock.code] = stock.value;
+      dailyLog[dateKey][stock.code] = stock.value;
     });
-    localStorage.setItem("weeklyLog", JSON.stringify(weeklyLog));
-  }
 
-  renderWeeklyTable(weeklyLog);
+    localStorage.setItem("dailyLog", JSON.stringify(dailyLog));
+    console.log("📈 Günlük 18:30 kaydı alındı:", dateKey);
+    renderDailyTable(dailyLog);
+  }
 }
 
-// Haftalık tablo render
-function renderWeeklyTable(weeklyLog){
-  const weeklyHead = document.getElementById("weeklyHead");
-  const weeklyBody = document.getElementById("weeklyBody");
+// ---------------------------
+// Günlük tablo render
+function renderDailyTable(dailyLog){
+  const dailyTable = document.getElementById("dailyTable");
+  if(!dailyTable) return;
 
-  const dates = Object.keys(weeklyLog).sort();
-
-  // Header
+  const dates = Object.keys(dailyLog).sort();
+  
+  // Başlık
   let headerRow = "<tr><th>Hisse</th>";
-  dates.forEach(date => {
-    const d = new Date(date);
-    headerRow += `<th>${d.toLocaleDateString("tr-TR")}</th>`;
+  dates.forEach(date=>{
+    headerRow += `<th>${new Date(date).toLocaleDateString("tr-TR")} 18:30</th>`;
   });
   headerRow += "</tr>";
-  weeklyHead.innerHTML = headerRow;
+  document.getElementById("dailyHead").innerHTML = headerRow;
 
   // Body
   let rows = "";
   portfolio.forEach(stock => {
     rows += `<tr><td>${stock.code}</td>`;
-    dates.forEach((date,i) => {
-      const value = weeklyLog[date][stock.code];
+    dates.forEach((date,i)=>{
+      const value = dailyLog[date][stock.code];
       let className = "";
       if(i>0){
-        const prev = weeklyLog[dates[i-1]][stock.code];
+        const prev = dailyLog[dates[i-1]][stock.code];
         if(value>prev) className="positive";
         else if(value<prev) className="negative";
       }
@@ -202,7 +209,7 @@ function renderWeeklyTable(weeklyLog){
     });
     rows += "</tr>";
   });
-  weeklyBody.innerHTML = rows;
+  document.getElementById("dailyBody").innerHTML = rows;
 }
 
 // ---------------------
@@ -210,7 +217,7 @@ function renderWeeklyTable(weeklyLog){
 updateClock();
 setInterval(updateClock,1000);
 updatePortfolio();
-setInterval(updatePortfolio,60000); // 1 dakikada bir portföy güncelle
+setInterval(updatePortfolio,60000); // her dakika güncelle
 </script>
 
 </body>
