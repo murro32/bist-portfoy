@@ -2,80 +2,34 @@
 <html>
 <head>
 <meta charset="UTF-8" />
-<title>BIST Portföy Takip</title>
+<title>BIST Portföy Takip - Haftalık Simülasyon</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  body {
-    font-family: Arial;
-    background: #0f172a;
-    color: white;
-    margin: 0;
-    padding: 15px;
-  }
-  h1 { text-align: center; }
-  .card {
-    background: #1e293b;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 15px;
-    overflow-x:auto;
-  }
-  .topbar {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-  .timebox {
-    text-align: right;
-    font-size: 13px;
-    opacity: 0.8;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 700px;
-  }
-  th, td {
-    padding: 8px;
-    text-align: center;
-    border-bottom: 1px solid #334155;
-    white-space: nowrap;
-  }
-  th { background: #334155; }
-  tr:nth-child(even) { background: #1e293b; }
-  .positive { color: #22c55e; }
-  .negative { color: #ef4444; }
-  .big { font-size: 22px; font-weight: bold; }
-  button {
-    padding: 10px;
-    width: 100%;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    margin-top: 10px;
-    cursor: pointer;
-  }
-  button:hover { background: #1d4ed8; }
-  .weekly-table { overflow-x:auto; }
+  body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
+  h1 { text-align:center; }
+  .card { background:#1e293b; padding:15px; border-radius:10px; margin-bottom:15px; overflow-x:auto; }
+  table { width:100%; border-collapse: collapse; min-width:700px; }
+  th, td { padding:8px; text-align:center; border-bottom:1px solid #334155; white-space: nowrap; }
+  th { background:#334155; }
+  tr:nth-child(even){background:#1e293b;}
+  .positive { color:#22c55e; }
+  .negative { color:#ef4444; }
+  .big { font-size:22px; font-weight:bold; }
+  .timebox { text-align:right; font-size:13px; opacity:0.8; }
+  button { padding:10px; width:100%; background:#2563eb; color:white; border:none; border-radius:8px; margin-top:10px; cursor:pointer;}
+  button:hover { background:#1d4ed8; }
+  .weekly-table { overflow-x:auto; margin-top:10px; }
 </style>
 </head>
 <body>
 
-<h1>📊 Portföy Takip</h1>
+<h1>📊 Portföy Takip - Haftalık Simülasyon</h1>
 
 <div class="card">
-  <div class="topbar">
-    <div>
-      <div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
-      <div class="big" id="totalProfit">Toplam Kar: -</div>
-    </div>
-    <div class="timebox">
-      <div id="liveClock"></div>
-      <div id="lastUpdate"></div>
-    </div>
-  </div>
+  <div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
+  <div class="big" id="totalProfit">Toplam Kar: -</div>
+  <div class="timebox" id="liveClock"></div>
+  <div class="timebox" id="lastUpdate"></div>
 </div>
 
 <div class="card">
@@ -96,9 +50,9 @@
 </div>
 
 <div class="card">
-<button onclick="saveWeekly()">Haftayı Kaydet</button>
+<button onclick="saveWeekly()">Haftayı Kaydet (Simülasyon)</button>
 <div class="weekly-table">
-<table id="weeklyTable" style="min-width:700px;">
+<table id="weeklyTable">
   <thead id="weeklyHead"></thead>
   <tbody id="weeklyBody"></tbody>
 </table>
@@ -106,53 +60,46 @@
 </div>
 
 <script>
+// Portföy tanımı
 const portfolio = [
-  { code: "THYAO", lot: 50, cost: 11930.00 },
-  { code: "TUPRS", lot: 70, cost: 8649.90 },
-  { code: "ASELS", lot: 50, cost: 3180.50 }
+  { code:"THYAO", lot:50, cost:11930.00 },
+  { code:"TUPRS", lot:70, cost:8649.90 },
+  { code:"ASELS", lot:50, cost:3180.50 }
 ];
 
+// Türkçe sayı formatı
 function formatNumber(num) {
-  return num.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return num.toLocaleString("tr-TR",{ minimumFractionDigits:2, maximumFractionDigits:2 });
 }
 
+// Anlık saat
 function updateClock() {
   const now = new Date();
   document.getElementById("liveClock").innerText = "Anlık Saat: " + now.toLocaleTimeString();
 }
 
-async function fetchPrices(symbols) {
-  try {
-    const response = await fetch(`/api/price?symbols=${symbols}`);
-    const prices = await response.json();
-    window.latestPrices = prices;
-    return prices;
-  } catch {
-    window.latestPrices = null;
-    return null;
-  }
-}
+// ---------------------
+// Simülasyon: Haftalık veriler
+// 09.02.2026 – 13.02.2026
+const mockWeeklyData = {
+  "2026-02-09": { "THYAO":15000.50, "TUPRS":12000.75, "ASELS":8200.00 },
+  "2026-02-10": { "THYAO":15250.00, "TUPRS":11900.25, "ASELS":8300.50 },
+  "2026-02-11": { "THYAO":15100.75, "TUPRS":12150.00, "ASELS":8400.00 },
+  "2026-02-12": { "THYAO":15300.00, "TUPRS":12200.00, "ASELS":8350.25 },
+  "2026-02-13": { "THYAO":15500.50, "TUPRS":12350.75, "ASELS":8450.00 }
+};
 
-async function updatePortfolioAndPrices() {
+// ---------------------
+// Portföy tablosunu simülasyon ile doldurma
+function updatePortfolio() {
   const tbody = document.getElementById("portfolioBody");
-  tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
-
-  const symbols = portfolio.map(s => s.code).join(",");
-  const prices = await fetchPrices(symbols);
-  if (!prices) {
-    tbody.innerHTML = "<tr><td colspan='7'>Veri alınamadı</td></tr>";
-    document.getElementById("totalValue").innerText = "API Hatası";
-    return;
-  }
-
   tbody.innerHTML = "";
   let totalValue = 0;
   let totalCost = 0;
 
   for (let stock of portfolio) {
-    const price = prices[stock.code];
-    if (!price) continue;
-
+    const lastDate = "2026-02-13"; // son gün değerini alıyoruz
+    const price = mockWeeklyData[lastDate][stock.code] / stock.lot;
     const value = price * stock.lot;
     const profitTL = value - stock.cost;
     const profitPercent = (profitTL / stock.cost) * 100;
@@ -167,42 +114,29 @@ async function updatePortfolioAndPrices() {
         <td>${formatNumber(stock.cost)}</td>
         <td>${formatNumber(value)}</td>
         <td>${formatNumber(price)}</td>
-        <td class="${profitTL >= 0 ? "positive" : "negative"}">${formatNumber(profitTL)}</td>
-        <td class="${profitPercent >= 0 ? "positive" : "negative"}">${profitPercent.toFixed(2)}%</td>
+        <td class="${profitTL>=0?'positive':'negative'}">${formatNumber(profitTL)}</td>
+        <td class="${profitPercent>=0?'positive':'negative'}">${profitPercent.toFixed(2)}%</td>
       </tr>`;
   }
 
   const totalProfitTL = totalValue - totalCost;
-  const totalProfitPercent = (totalProfitTL / totalCost) * 100;
+  const totalProfitPercent = (totalProfitTL / totalCost)*100;
   document.getElementById("totalValue").innerText = "Toplam Değer: " + formatNumber(totalValue);
-  document.getElementById("totalProfit").innerHTML =
-    "Toplam Kar: <span class='" + (totalProfitTL >= 0 ? "positive" : "negative") + "'>" +
-    formatNumber(totalProfitTL) + " (" + totalProfitPercent.toFixed(2) + "%)</span>";
+  document.getElementById("totalProfit").innerHTML = 
+    "Toplam Kar: <span class='"+(totalProfitTL>=0?'positive':'negative')+"'>"+formatNumber(totalProfitTL)+" ("+totalProfitPercent.toFixed(2)+"%)</span>";
 
   document.getElementById("lastUpdate").innerText = "Son Yenilenme: " + new Date().toLocaleTimeString();
-  renderWeeklyTable();
 }
 
-// Haftalık veriyi localStorage'dan al veya boş obje oluştur
-function getWeeklyData() {
-  return JSON.parse(localStorage.getItem("weeklyData") || "{}");
-}
-function setWeeklyData(data) {
-  localStorage.setItem("weeklyData", JSON.stringify(data));
-}
-
+// ---------------------
+// Haftalık tablo render fonksiyonu
 function renderWeeklyTable() {
-  const weeklyData = getWeeklyData();
   const weeklyHead = document.getElementById("weeklyHead");
   const weeklyBody = document.getElementById("weeklyBody");
 
-  const dates = Object.keys(weeklyData).sort((a,b) => new Date(a) - new Date(b));
-  if (dates.length === 0) {
-    weeklyHead.innerHTML = "<tr><th>Anlık Hisse Değeri(TL)</th><th>Henüz kayıt yok</th></tr>";
-    weeklyBody.innerHTML = "";
-    return;
-  }
+  const dates = Object.keys(mockWeeklyData).sort((a,b)=>new Date(a)-new Date(b));
 
+  // Header
   let headerRow = "<tr><th>Hisse</th>";
   for (let date of dates) {
     headerRow += `<th>${new Date(date).toLocaleDateString("tr-TR")}</th>`;
@@ -210,50 +144,39 @@ function renderWeeklyTable() {
   headerRow += "</tr>";
   weeklyHead.innerHTML = headerRow;
 
+  // Body
   let rows = "";
   for (let stock of portfolio) {
     rows += `<tr><td>${stock.code}</td>`;
-    for (let i = 0; i < dates.length; i++) {
+    for (let i=0;i<dates.length;i++){
       const date = dates[i];
-      const value = weeklyData[date]?.[stock.code];
-      if (value === undefined) {
-        rows += "<td>-</td>";
-      } else {
-        let className = "";
-        if (i > 0) {
-          const prevValue = weeklyData[dates[i-1]]?.[stock.code];
-          if (prevValue !== undefined) className = value > prevValue ? "positive" : (value < prevValue ? "negative" : "");
-        }
-        rows += `<td class="${className}">${formatNumber(value)}</td>`;
+      const value = mockWeeklyData[date][stock.code];
+      let className = "";
+      if(i>0){
+        const prevValue = mockWeeklyData[dates[i-1]][stock.code];
+        if(value > prevValue) className="positive";
+        else if(value < prevValue) className="negative";
       }
+      rows += `<td class="${className}">${formatNumber(value)}</td>`;
     }
     rows += "</tr>";
   }
   weeklyBody.innerHTML = rows;
 }
 
+// ---------------------
+// Simülasyon için "Haftayı Kaydet" butonu (mock)
 function saveWeekly() {
-  if (!window.latestPrices) {
-    alert("Güncel fiyatlar henüz yüklenmedi, lütfen bekleyin.");
-    return;
-  }
-  const todayKey = new Date().toISOString().slice(0,10);
-  const weeklyData = getWeeklyData();
-  if (!weeklyData[todayKey]) weeklyData[todayKey] = {};
-  portfolio.forEach(stock => {
-    const price = window.latestPrices[stock.code];
-    weeklyData[todayKey][stock.code] = price * stock.lot;
-  });
-  setWeeklyData(weeklyData);
-  renderWeeklyTable();
+  alert("Simülasyon: Haftalık veriler zaten yüklendi.");
 }
 
+// ---------------------
+// Başlangıç
 updateClock();
 setInterval(updateClock,1000);
-updatePortfolioAndPrices();
-setInterval(updatePortfolioAndPrices,60000);
+updatePortfolio();
 renderWeeklyTable();
-
 </script>
+
 </body>
 </html>
