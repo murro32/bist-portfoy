@@ -13,6 +13,7 @@ body {
   margin:0; 
   padding:15px;
 }
+
 h1 { text-align:center; }
 
 .card { 
@@ -20,6 +21,19 @@ h1 { text-align:center; }
   padding:15px; 
   border-radius:10px; 
   margin-bottom:15px;
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+
+.timebox{
+  text-align:right;
+  font-size:13px;
+  opacity:0.8;
 }
 
 table { 
@@ -57,11 +71,6 @@ button {
 
 button:hover { background:#1d4ed8; }
 
-#lastUpdate{
-  font-size:12px;
-  opacity:0.7;
-  margin-top:5px;
-}
 </style>
 </head>
 <body>
@@ -69,9 +78,16 @@ button:hover { background:#1d4ed8; }
 <h1>📊 Portföy Takip</h1>
 
 <div class="card">
-  <div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
-  <div class="big" id="totalProfit">Toplam Kar: -</div>
-  <div id="lastUpdate"></div>
+  <div class="topbar">
+    <div>
+      <div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
+      <div class="big" id="totalProfit">Toplam Kar: -</div>
+    </div>
+    <div class="timebox">
+      <div id="liveClock"></div>
+      <div id="lastUpdate"></div>
+    </div>
+  </div>
 </div>
 
 <div class="card">
@@ -80,11 +96,11 @@ button:hover { background:#1d4ed8; }
 <tr>
 <th>Hisse</th>
 <th>Lot</th>
-<th>Maliyet</th>
-<th>Anlık</th>
-<th>Değer</th>
+<th>Maliyet (TL)</th>
+<th>Anlık Fiyat (TL)</th>
+<th>Güncel Hisse Değeri (TL)</th>
 <th>K/Z</th>
-<th>%</th>
+<th>K/Z (TL)</th>
 </tr>
 </thead>
 <tbody id="portfolioBody"></tbody>
@@ -98,12 +114,17 @@ button:hover { background:#1d4ed8; }
 
 <script>
 
-// PORTFÖYÜN
 const portfolio = [
   { code:"THYAO", lot:50, cost:11930.00 },
   { code:"TUPRS", lot:70, cost:8649.90 },
   { code:"ASELS", lot:50, cost:3180.50 }
 ];
+
+function updateClock(){
+  const now = new Date();
+  document.getElementById("liveClock").innerText =
+    "Anlık Saat: " + now.toLocaleTimeString();
+}
 
 async function updatePortfolio(){
 
@@ -136,8 +157,8 @@ async function updatePortfolio(){
       }
 
       const value = price * stock.lot;
-      const profit = value - stock.cost;
-      const percent = (profit / stock.cost) * 100;
+      const profitTL = value - stock.cost;
+      const profitPercent = (profitTL / stock.cost) * 100;
 
       totalValue += value;
       totalCost += stock.cost;
@@ -146,26 +167,26 @@ async function updatePortfolio(){
       <tr>
       <td>${stock.code}</td>
       <td>${stock.lot}</td>
-      <td>${stock.cost.toFixed(2)}</td>
-      <td>${price.toFixed(2)}</td>
-      <td>${value.toFixed(2)}</td>
-      <td class="${profit>=0?'positive':'negative'}">${profit.toFixed(2)}</td>
-      <td class="${percent>=0?'positive':'negative'}">${percent.toFixed(2)}%</td>
+      <td>${stock.cost.toFixed(2)} TL</td>
+      <td>${price.toFixed(2)} TL</td>
+      <td>${value.toFixed(2)} TL</td>
+      <td class="${profitPercent>=0?'positive':'negative'}">${profitPercent.toFixed(2)}%</td>
+      <td class="${profitTL>=0?'positive':'negative'}">${profitTL.toFixed(2)} TL</td>
       </tr>`;
     }
 
-    const totalProfit = totalValue - totalCost;
-    const totalPercent = (totalProfit / totalCost) * 100;
+    const totalProfitTL = totalValue - totalCost;
+    const totalProfitPercent = (totalProfitTL / totalCost) * 100;
 
     document.getElementById("totalValue").innerText =
       "Toplam Değer: " + totalValue.toFixed(2) + " TL";
 
     document.getElementById("totalProfit").innerHTML =
-      "Toplam Kar: <span class='"+(totalProfit>=0?'positive':'negative')+"'>" +
-      totalProfit.toFixed(2) + " TL (" + totalPercent.toFixed(2) + "%)</span>";
+      "Toplam Kar: <span class='"+(totalProfitTL>=0?'positive':'negative')+"'>" +
+      totalProfitTL.toFixed(2) + " TL (" + totalProfitPercent.toFixed(2) + "%)</span>";
 
     document.getElementById("lastUpdate").innerText =
-      "Son Güncelleme: " + new Date().toLocaleTimeString();
+      "Son Yenilenme: " + new Date().toLocaleTimeString();
 
   }catch(error){
 
@@ -192,9 +213,12 @@ function showWeekly(){
   });
 }
 
+updateClock();
+setInterval(updateClock,1000);
+
 updatePortfolio();
 showWeekly();
-setInterval(updatePortfolio,60000); // 60 saniye refresh
+setInterval(updatePortfolio,60000);
 
 </script>
 
