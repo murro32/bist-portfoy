@@ -147,7 +147,7 @@ let log = JSON.parse(localStorage.getItem("weekly") || "[]");
 let div = document.getElementById("weeklyLog");
 div.innerHTML="<h3>Haftalık Kayıt</h3>";
 log.forEach(item=>{
-div.innerHTML += <div>${item.date} - ${item.value}</div>;
+div.innerHTML += `<div>${item.date} - ${item.value}</div>`;
 });
 }
 
