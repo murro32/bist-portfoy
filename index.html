@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>BIST Portföy Takip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
+h1 { text-align:center; }
+.card { background:#1e293b; padding:15px; border-radius:10px; margin-bottom:15px;}
+table { width:100%; border-collapse: collapse; }
+th, td { padding:8px; text-align:center; }
+th { background:#334155; }
+tr:nth-child(even){background:#1e293b;}
+.positive { color:#22c55e; }
+.negative { color:#ef4444; }
+.big { font-size:22px; font-weight:bold; }
+button { padding:10px; width:100%; background:#2563eb; color:white; border:none; border-radius:8px; margin-top:10px; cursor:pointer;}
+button:hover { background:#1d4ed8; }
+</style>
+</head>
+<body>
+
+<h1>📊 Portföy Takip</h1>
+
+<div class="card">
+<div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
+<div class="big" id="totalProfit">Toplam Kar: -</div>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>Hisse</th>
+<th>Lot</th>
+<th>Maliyet</th>
+<th>Anlık</th>
+<th>Değer</th>
+<th>K/Z</th>
+<th>%</th>
+</tr>
+</thead>
+<tbody id="portfolioBody"></tbody>
+</table>
+</div>
+
+<div class="card">
+<button onclick="saveWeekly()">Haftayı Kaydet</button>
+<div id="weeklyLog"></div>
+</div>
+
+<script>
+
+const portfolio = [
+{ code:"THYAO", lot:50, cost:11930.00 },
+{ code:"TUPRS", lot:70, cost:8649.90 },
+{ code:"ASELS", lot:50, cost:3180.50 }
+];
+
+async function fetchPrice(symbol){
+try{
+let url = https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=1d;
+let res = await fetch(url);
+
+if(!res.ok) throw new Error("API Hatası");
+
+let data = await res.json();
+
+if(!data.chart || !data.chart.result) throw new Error("Veri Yok");
+
+let result = data.chart.result[0];
+let price = result.meta.regularMarketPrice;
+
+return price;
+}catch(e){
+console.log(symbol + " veri alınamadı:", e);
+return null;
+}
+}
+
+async function updatePortfolio(){
+let tbody = document.getElementById("portfolioBody");
+tbody.innerHTML="";
+let totalValue=0;
+let totalCost=0;
+
+for(let stock of portfolio){
+let price = await fetchPrice(stock.code);
+
+if(price === null){
+tbody.innerHTML += `
+<tr>
+<td>${stock.code}</td>
+<td colspan="6">Veri alınamadı</td>
+</tr>`;
+continue;
+}
+
+let value = price * stock.lot;
+let profit = value - stock.cost;
+let percent = (profit / stock.cost) * 100;
+
+totalValue += value;
+totalCost += stock.cost;
+
+tbody.innerHTML += `
+<tr>
+<td>${stock.code}</td>
+<td>${stock.lot}</td>
+<td>${stock.cost.toFixed(2)}</td>
+<td>${price.toFixed(2)}</td>
+<td>${value.toFixed(2)}</td>
+<td class="${profit>=0?'positive':'negative'}">${profit.toFixed(2)}</td>
+<td class="${percent>=0?'positive':'negative'}">${percent.toFixed(2)}%</td>
+</tr>
+`;
+}
+
+if(totalCost === 0){
+document.getElementById("totalValue").innerText="Veri alınamadı";
+return;
+}
+
+let totalProfit = totalValue - totalCost;
+let totalPercent = (totalProfit / totalCost) * 100;
+
+document.getElementById("totalValue").innerText =
+"Toplam Değer: " + totalValue.toFixed(2) + " TL";
+
+document.getElementById("totalProfit").innerHTML =
+"Toplam Kar: <span class='"+(totalProfit>=0?'positive':'negative')+"'>" +
+totalProfit.toFixed(2) + " TL (" + totalPercent.toFixed(2) + "%)</span>";
+}
+
+function saveWeekly(){
+let today = new Date().toLocaleDateString();
+let value = document.getElementById("totalValue").innerText;
+let log = JSON.parse(localStorage.getItem("weekly") || "[]");
+log.push({date:today, value:value});
+localStorage.setItem("weekly", JSON.stringify(log));
+showWeekly();
+}
+
+function showWeekly(){
+let log = JSON.parse(localStorage.getItem("weekly") || "[]");
+let div = document.getElementById("weeklyLog");
+div.innerHTML="<h3>Haftalık Kayıt</h3>";
+log.forEach(item=>{
+div.innerHTML += <div>${item.date} - ${item.value}</div>;
+});
+}
+
+updatePortfolio();
+showWeekly();
+setInterval(updatePortfolio,20000);
+
+</script>
+
+</body>
+</html>
