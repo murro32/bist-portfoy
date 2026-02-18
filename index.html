@@ -179,15 +179,16 @@ async function updatePortfolio() {
       totalCost += stock.cost;
 
       tbody.innerHTML += `
-      <tr>
-        <td>${stock.code}</td>
-        <td>${stock.lot}</td>
-        <td>${formatTL(stock.cost)}</td>
-        <td>${formatTL(value)}</td>
-        <td>${formatNumber(price)}</td>
-        <td class="${profitTL >= 0 ? "positive" : "negative"}">${formatTL(profitTL)}</td>
-        <td class="${profitPercent >= 0 ? "positive" : "negative"}">${profitPercent.toFixed(2)}%</td>
-      </tr>`;
+  <tr>
+    <td>${stock.code}</td>
+    <td>${stock.lot}</td>
+    <td>${formatTL(stock.cost)}</td>             <!-- TL yazılı -->
+    <td>${formatTL(value)}</td>                  <!-- TL yazılı -->
+    <td>${formatNumber(price)}</td>               <!-- Sadece sayı -->
+    <td class="${profitTL >= 0 ? "positive" : "negative"}">${formatNumber(profitTL)}</td> <!-- Sadece sayı -->
+    <td class="${profitPercent >= 0 ? "positive" : "negative"}">${profitPercent.toFixed(2)}%</td>
+  </tr>`;
+
     }
 
     const totalProfitTL = totalValue - totalCost;
