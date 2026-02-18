@@ -66,10 +66,10 @@ const portfolio = [
   { code:"THYAO", lot:50, cost:11930.00 },
   { code:"TUPRS", lot:70, cost:8649.90 },
   { code:"ASELS", lot:50, cost:3180.50 },
-  { code:"ENERY", lot:2544.83, cost: 5547.72 }, // düzeltilmiş lot ve maliyet
-  { code:"ALARK", lot:50, cost:5515.00 - (-663.50) }, // zarar için
-  { code:"MIATK", lot:100, cost:4014.00 - (-550.00) },
-  { code:"PETKM", lot:200, cost:3700.00 - 36.00 }
+  { code:"ENERY", lot:2544.83, cost:5547.72 }, 
+  { code:"ALARK", lot:50, cost:6178.50 }, 
+  { code:"MIATK", lot:100, cost:4564.00 },
+  { code:"PETKM", lot:200, cost:3664.00 }
 ];
 
 // Türkçe sayı formatı
@@ -98,7 +98,7 @@ async function fetchPrices(symbols) {
 }
 
 // ---------------------
-// Portföy tablosunu güncelle
+// Portföy tablosunu güncelle (Güncel Hisse Değeri büyükten küçüğe)
 async function updatePortfolio() {
   const tbody = document.getElementById("portfolioBody");
   tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
@@ -111,29 +111,33 @@ async function updatePortfolio() {
     return;
   }
 
+  // Portföy verilerini güncel hisse değerine göre hesapla
+  const data = portfolio.map(stock => {
+    const price = prices[stock.code];
+    const value = price * stock.lot;
+    const profitTL = value - stock.cost;
+    const profitPercent = (profitTL / stock.cost) * 100;
+    return { ...stock, price, value, profitTL, profitPercent };
+  });
+
+  // Güncel Hisse Değeri büyükten küçüğe sırala
+  data.sort((a,b) => b.value - a.value);
+
   tbody.innerHTML = "";
   let totalValue = 0;
   let totalCost = 0;
-
-  for (let stock of portfolio){
-    const price = prices[stock.code];
-    if(!price) continue;
-    const value = price*stock.lot;
-    const profitTL = value - stock.cost;
-    const profitPercent = (profitTL / stock.cost) * 100;
-
-    totalValue += value;
+  for (let stock of data){
+    totalValue += stock.value;
     totalCost += stock.cost;
-
     tbody.innerHTML += `
       <tr>
         <td>${stock.code}</td>
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
-        <td>${formatNumber(value)}</td>
-        <td>${formatNumber(price)}</td>
-        <td class="${profitTL>=0?'positive':'negative'}">${formatNumber(profitTL)}</td>
-        <td class="${profitPercent>=0?'positive':'negative'}">${profitPercent.toFixed(2)}%</td>
+        <td>${formatNumber(stock.value)}</td>
+        <td>${formatNumber(stock.price)}</td>
+        <td class="${stock.profitTL>=0?'positive':'negative'}">${formatNumber(stock.profitTL)}</td>
+        <td class="${stock.profitPercent>=0?'positive':'negative'}">${stock.profitPercent.toFixed(2)}%</td>
       </tr>`;
   }
 
