@@ -1,76 +1,81 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>BIST Portföy Takip</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-body { 
-  font-family: Arial; 
-  background:#0f172a; 
-  color:white; 
-  margin:0; 
-  padding:15px;
-}
-
-h1 { text-align:center; }
-
-.card { 
-  background:#1e293b; 
-  padding:15px; 
-  border-radius:10px; 
-  margin-bottom:15px;
-}
-
-.topbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  flex-wrap:wrap;
-}
-
-.timebox{
-  text-align:right;
-  font-size:13px;
-  opacity:0.8;
-}
-
-table { 
-  width:100%; 
-  border-collapse: collapse; 
-}
-
-th, td { 
-  padding:8px; 
-  text-align:center; 
-}
-
-th { background:#334155; }
-
-tr:nth-child(even){ background:#1e293b; }
-
-.positive { color:#22c55e; }
-.negative { color:#ef4444; }
-
-.big { 
-  font-size:22px; 
-  font-weight:bold; 
-}
-
-button { 
-  padding:10px; 
-  width:100%; 
-  background:#2563eb; 
-  color:white; 
-  border:none; 
-  border-radius:8px; 
-  margin-top:10px; 
-  cursor:pointer;
-}
-
-button:hover { background:#1d4ed8; }
-
+  body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    margin: 0;
+    padding: 15px;
+  }
+  h1 {
+    text-align: center;
+  }
+  .card {
+    background: #1e293b;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    overflow-x:auto;
+  }
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .timebox {
+    text-align: right;
+    font-size: 13px;
+    opacity: 0.8;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+  }
+  th, td {
+    padding: 8px;
+    text-align: center;
+    border-bottom: 1px solid #334155;
+    white-space: nowrap;
+  }
+  th {
+    background: #334155;
+  }
+  tr:nth-child(even) {
+    background: #1e293b;
+  }
+  .positive {
+    color: #22c55e;
+  }
+  .negative {
+    color: #ef4444;
+  }
+  .big {
+    font-size: 22px;
+    font-weight: bold;
+  }
+  button {
+    padding: 10px;
+    width: 100%;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    margin-top: 10px;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #1d4ed8;
+  }
+  .weekly-table {
+    overflow-x:auto;
+  }
 </style>
 </head>
 <body>
@@ -94,13 +99,13 @@ button:hover { background:#1d4ed8; }
 <table>
 <thead>
 <tr>
-<th>Hisse</th>
-<th>Lot</th>
-<th>Maliyet (TL)</th>
-<th>Güncel Hisse Değeri (TL)</th>
-<th>Anlık Fiyat (TL)</th>
-<th>K/Z (TL)</th>
-<th>K/Z (%)</th>
+  <th>Hisse</th>
+  <th>Lot</th>
+  <th>Maliyet (TL)</th>
+  <th>Güncel Hisse Değeri (TL)</th>
+  <th>Anlık Fiyat</th>
+  <th>K/Z (TL)</th>
+  <th>K/Z (%)</th>
 </tr>
 </thead>
 <tbody id="portfolioBody"></tbody>
@@ -109,54 +114,60 @@ button:hover { background:#1d4ed8; }
 
 <div class="card">
 <button onclick="saveWeekly()">Haftayı Kaydet</button>
-<div id="weeklyLog"></div>
+<div class="weekly-table">
+<table id="weeklyTable" style="min-width:700px;">
+  <thead id="weeklyHead"></thead>
+  <tbody id="weeklyBody"></tbody>
+</table>
+</div>
 </div>
 
 <script>
-
 const portfolio = [
-  { code:"THYAO", lot:50, cost:11930.00 },
-  { code:"TUPRS", lot:70, cost:8649.90 },
-  { code:"ASELS", lot:50, cost:3180.50 }
+  { code: "THYAO", lot: 50, cost: 11930.00 },
+  { code: "TUPRS", lot: 70, cost: 8649.90 },
+  { code: "ASELS", lot: 50, cost: 3180.50 }
 ];
 
-function formatTL(number){
-  return number.toLocaleString("tr-TR", {minimumFractionDigits:2, maximumFractionDigits:2});
+// Format TL sayı, Türkçe locale ile, ondalıklı, ama TL yazmaz (sadece sayı)
+function formatNumber(num) {
+  return num.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function updateClock(){
+// Format TL yazanlar için (TL ekler)
+function formatTL(num) {
+  return formatNumber(num) + " TL";
+}
+
+function updateClock() {
   const now = new Date();
-  document.getElementById("liveClock").innerText =
-    "Anlık Saat: " + now.toLocaleTimeString();
+  document.getElementById("liveClock").innerText = "Anlık Saat: " + now.toLocaleTimeString();
 }
 
-async function updatePortfolio(){
-
+async function updatePortfolio() {
   const tbody = document.getElementById("portfolioBody");
-  tbody.innerHTML="<tr><td colspan='7'>Yükleniyor...</td></tr>";
+  tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
 
-  const symbols = portfolio.map(s => s.code).join(",");
+  const symbols = portfolio.map((s) => s.code).join(",");
 
-  try{
-
+  try {
     const response = await fetch(`/api/price?symbols=${symbols}`);
     const prices = await response.json();
 
-    tbody.innerHTML="";
+    tbody.innerHTML = "";
 
-    let totalValue=0;
-    let totalCost=0;
+    let totalValue = 0;
+    let totalCost = 0;
 
-    for(let stock of portfolio){
-
+    for (let stock of portfolio) {
       const price = prices[stock.code];
 
-      if(!price){
+      if (!price) {
         tbody.innerHTML += `
-        <tr>
-        <td>${stock.code}</td>
-        <td colspan="6">Veri alınamadı</td>
-        </tr>`;
+          <tr>
+            <td>${stock.code}</td>
+            <td colspan="6">Veri alınamadı</td>
+          </tr>`;
         continue;
       }
 
@@ -169,13 +180,13 @@ async function updatePortfolio(){
 
       tbody.innerHTML += `
       <tr>
-      <td>${stock.code}</td>
-      <td>${stock.lot}</td>
-      <td>${formatTL(stock.cost)} TL</td>
-      <td>${formatTL(value)} TL</td>
-      <td>${formatTL(price)} TL</td>
-      <td class="${profitTL>=0?'positive':'negative'}">${formatTL(profitTL)} TL</td>
-      <td class="${profitPercent>=0?'positive':'negative'}">${profitPercent.toFixed(2)}%</td>
+        <td>${stock.code}</td>
+        <td>${stock.lot}</td>
+        <td>${formatTL(stock.cost)}</td>
+        <td>${formatTL(value)}</td>
+        <td>${formatNumber(price)}</td>
+        <td class="${profitTL >= 0 ? "positive" : "negative"}">${formatTL(profitTL)}</td>
+        <td class="${profitPercent >= 0 ? "positive" : "negative"}">${profitPercent.toFixed(2)}%</td>
       </tr>`;
     }
 
@@ -183,48 +194,213 @@ async function updatePortfolio(){
     const totalProfitPercent = (totalProfitTL / totalCost) * 100;
 
     document.getElementById("totalValue").innerText =
-      "Toplam Değer: " + formatTL(totalValue) + " TL";
+      "Toplam Değer: " + formatTL(totalValue);
 
     document.getElementById("totalProfit").innerHTML =
-      "Toplam Kar: <span class='"+(totalProfitTL>=0?'positive':'negative')+"'>" +
-      formatTL(totalProfitTL) + " TL (" + totalProfitPercent.toFixed(2) + "%)</span>";
+      "Toplam Kar: <span class='" + (totalProfitTL >= 0 ? "positive" : "negative") + "'>" +
+      formatTL(totalProfitTL) + " (" + totalProfitPercent.toFixed(2) + "%)</span>";
 
     document.getElementById("lastUpdate").innerText =
       "Son Yenilenme: " + new Date().toLocaleTimeString();
 
-  }catch(error){
+    // Haftalık tabloyu güncelle
+    renderWeeklyTable();
 
-    document.getElementById("totalValue").innerText="API Hatası";
-    tbody.innerHTML="<tr><td colspan='7'>Veri alınamadı</td></tr>";
+  } catch (error) {
+    document.getElementById("totalValue").innerText = "API Hatası";
+    tbody.innerHTML = "<tr><td colspan='7'>Veri alınamadı</td></tr>";
   }
 }
 
-function saveWeekly(){
-  const today = new Date().toLocaleDateString();
-  const value = document.getElementById("totalValue").innerText;
-  const log = JSON.parse(localStorage.getItem("weekly") || "[]");
-  log.push({date:today, value:value});
-  localStorage.setItem("weekly", JSON.stringify(log));
-  showWeekly();
+// LocalStorage'dan haftalık veriyi oku veya boş obje döndür
+function getWeeklyData() {
+  return JSON.parse(localStorage.getItem("weeklyData") || "{}");
 }
 
-function showWeekly(){
-  const log = JSON.parse(localStorage.getItem("weekly") || "[]");
-  const div = document.getElementById("weeklyLog");
-  div.innerHTML="<h3>Haftalık Kayıt</h3>";
-  log.forEach(item=>{
-    div.innerHTML += `<div>${item.date} - ${item.value}</div>`;
+// Haftalık veriyi kaydet
+function setWeeklyData(data) {
+  localStorage.setItem("weeklyData", JSON.stringify(data));
+}
+
+// Haftalık tabloyu oluştur
+function renderWeeklyTable() {
+  const weeklyData = getWeeklyData();
+  const weeklyHead = document.getElementById("weeklyHead");
+  const weeklyBody = document.getElementById("weeklyBody");
+
+  // Sütun başlıkları: önce "Anlık Hisse Değeri (TL)" sonra tarih sütunları (sıralı)
+  let dates = Object.keys(weeklyData).sort((a, b) => new Date(a) - new Date(b));
+  if (dates.length === 0) {
+    weeklyHead.innerHTML = "<tr><th>Anlık Hisse Değeri (TL)</th><th>Henüz kayıt yok</th></tr>";
+    weeklyBody.innerHTML = "";
+    return;
+  }
+
+  // Başlık satırı
+  let headerRow = "<tr><th>Hisse</th>";
+  for (let date of dates) {
+    // Tarih formatı: gg.aa.yyyy
+    const dt = new Date(date);
+    const formattedDate = dt.toLocaleDateString("tr-TR");
+    headerRow += `<th>${formattedDate}</th>`;
+  }
+  headerRow += "</tr>";
+  weeklyHead.innerHTML = headerRow;
+
+  // Satırları hisse bazında oluştur
+  let rows = "";
+  for (let stock of portfolio) {
+    rows += `<tr><td>${stock.code}</td>`;
+
+    for (let i = 0; i < dates.length; i++) {
+      const date = dates[i];
+      const valuesForDate = weeklyData[date] || {};
+      const currentValue = valuesForDate[stock.code];
+
+      if (currentValue === undefined) {
+        rows += "<td>-</td>";
+      } else {
+        // Renk kontrolü: Önceki gün ile karşılaştır
+        let className = "";
+        if (i > 0) {
+          const prevDate = dates[i - 1];
+          const prevValue = weeklyData[prevDate]?.[stock.code];
+          if (prevValue !== undefined) {
+            className = currentValue > prevValue ? "positive" : (currentValue < prevValue ? "negative" : "");
+          }
+        }
+        rows += `<td class="${className}">${formatNumber(currentValue)}</td>`;
+      }
+    }
+    rows += "</tr>";
+  }
+  weeklyBody.innerHTML = rows;
+}
+
+// Haftalık veriyi kaydet (bugünün tarihi ve o anki güncel hisse değeri)
+function saveWeekly() {
+  const today = new Date();
+  const todayKey = today.toISOString().slice(0, 10); // yyyy-mm-dd formatı
+
+  const weeklyData = getWeeklyData();
+
+  if (!weeklyData[todayKey]) weeklyData[todayKey] = {};
+
+  // Güncel hisse değerleri alınır
+  const tbody = document.getElementById("portfolioBody");
+  // portfolio array'inden koda göre fiyatları bulacağız
+
+  portfolio.forEach(stock => {
+    // Güncel değeri tabloya göre alıyoruz, fiyat değil, değer (lot x fiyat)
+    // Ancak bizim tabloda hücre yoksa - koyuyoruz, kontrol et
+    // Alternatif: En son fetch edilen fiyatları saklamak lazım
+    // Biz burada prices objesini global yapabiliriz:
   });
+
+  // Güncel fiyatları globalde tutuyoruz ki burda kullanalım
+  // Eğer yoksa uyarı ver
+  if (!window.latestPrices) {
+    alert("Güncel fiyatlar henüz yüklenmedi, lütfen bekleyin.");
+    return;
+  }
+
+  // Bugünün hisse değerini hesaplayıp kaydet
+  portfolio.forEach(stock => {
+    const price = window.latestPrices[stock.code];
+    if (!price) return;
+    const value = price * stock.lot;
+    weeklyData[todayKey][stock.code] = value;
+  });
+
+  setWeeklyData(weeklyData);
+  renderWeeklyTable();
+}
+
+async function fetchPrices(symbols) {
+  try {
+    const response = await fetch(`/api/price?symbols=${symbols}`);
+    const prices = await response.json();
+    window.latestPrices = prices; // globalde tut
+    return prices;
+  } catch {
+    window.latestPrices = null;
+    return null;
+  }
+}
+
+async function updatePortfolioAndPrices() {
+  const tbody = document.getElementById("portfolioBody");
+  tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
+
+  const symbols = portfolio.map((s) => s.code).join(",");
+  const prices = await fetchPrices(symbols);
+  if (!prices) {
+    document.getElementById("totalValue").innerText = "API Hatası";
+    tbody.innerHTML = "<tr><td colspan='7'>Veri alınamadı</td></tr>";
+    return;
+  }
+
+  tbody.innerHTML = "";
+
+  let totalValue = 0;
+  let totalCost = 0;
+
+  for (let stock of portfolio) {
+    const price = prices[stock.code];
+
+    if (!price) {
+      tbody.innerHTML += `
+        <tr>
+          <td>${stock.code}</td>
+          <td colspan="6">Veri alınamadı</td>
+        </tr>`;
+      continue;
+    }
+
+    const value = price * stock.lot;
+    const profitTL = value - stock.cost;
+    const profitPercent = (profitTL / stock.cost) * 100;
+
+    totalValue += value;
+    totalCost += stock.cost;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${stock.code}</td>
+        <td>${stock.lot}</td>
+        <td>${formatTL(stock.cost)}</td>
+        <td>${formatTL(value)}</td>
+        <td>${formatNumber(price)}</td>
+        <td class="${profitTL >= 0 ? "positive" : "negative"}">${formatTL(profitTL)}</td>
+        <td class="${profitPercent >= 0 ? "positive" : "negative"}">${profitPercent.toFixed(2)}%</td>
+      </tr>`;
+  }
+
+  const totalProfitTL = totalValue - totalCost;
+  const totalProfitPercent = (totalProfitTL / totalCost) * 100;
+
+  document.getElementById("totalValue").innerText =
+    "Toplam Değer: " + formatTL(totalValue);
+
+  document.getElementById("totalProfit").innerHTML =
+    "Toplam Kar: <span class='" + (totalProfitTL >= 0 ? "positive" : "negative") + "'>" +
+    formatTL(totalProfitTL) + " (" + totalProfitPercent.toFixed(2) + "%)</span>";
+
+  document.getElementById("lastUpdate").innerText =
+    "Son Yenilenme: " + new Date().toLocaleTimeString();
+
+  // Haftalık tablo güncellendi
+  renderWeeklyTable();
 }
 
 updateClock();
-setInterval(updateClock,1000);
+setInterval(updateClock, 1000);
 
-updatePortfolio();
-showWeekly();
-setInterval(updatePortfolio,60000);
+updatePortfolioAndPrices();
+setInterval(updatePortfolioAndPrices, 60000);
+
+renderWeeklyTable();
 
 </script>
-
 </body>
 </html>
