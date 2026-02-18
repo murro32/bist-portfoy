@@ -1,20 +1,33 @@
 export default async function handler(req, res) {
-  const { symbol } = req.query;
+  const { symbols } = req.query;
 
-  if (!symbol) {
-    return res.status(400).json({ error: "Symbol gerekli" });
+  if (!symbols) {
+    return res.status(400).json({ error: "Symbols gerekli" });
   }
 
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=1d`;
-    const response = await fetch(url);
-    const data = await response.json();
+    const symbolList = symbols.split(",");
 
-    const price = data.chart.result[0].meta.regularMarketPrice;
+    const results = {};
 
-    res.status(200).json({ price });
+    await Promise.all(
+      symbolList.map(async (symbol) => {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=1d`;
 
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.chart && data.chart.result) {
+          results[symbol] =
+            data.chart.result[0].meta.regularMarketPrice;
+        } else {
+          results[symbol] = null;
+        }
+      })
+    );
+
+    res.status(200).json(results);
   } catch (error) {
-    res.status(500).json({ error: "Veri alınamadı" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 }
