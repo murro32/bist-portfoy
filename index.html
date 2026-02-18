@@ -50,7 +50,7 @@
 </div>
 
 <div class="card">
-<button onclick="saveWeekly()">Haftayı Kaydet</button>
+<h3>Haftalık Kayıt</h3>
 <div class="weekly-table">
 <table id="weeklyTable">
   <thead id="weeklyHead"></thead>
@@ -84,7 +84,7 @@ function updateClock() {
 }
 
 // ---------------------
-// Canlı fiyatları API’den al (Vercel /api/price?symbols=...)
+// Canlı fiyatları API’den al
 async function fetchPrices(symbols) {
   try {
     const response = await fetch(`/api/price?symbols=${symbols}`);
@@ -111,7 +111,7 @@ async function updatePortfolio() {
     return;
   }
 
-  // Portföy verilerini güncel hisse değerine göre hesapla
+  // Portföy verilerini hesapla
   const data = portfolio.map(stock => {
     const price = prices[stock.code];
     const value = price * stock.lot;
@@ -148,12 +148,61 @@ async function updatePortfolio() {
     "Toplam Kar: <span class='"+(totalProfitTL>=0?'positive':'negative')+"'>"+formatNumber(totalProfitTL)+" ("+totalProfitPercent.toFixed(2)+"%)</span>";
 
   document.getElementById("lastUpdate").innerText = "Son Yenilenme: " + new Date().toLocaleTimeString();
+
+  // Haftalık kaydı otomatik yap
+  saveWeeklyAuto(data);
 }
 
 // ---------------------
-// Haftalık tablo (yarın sabah başlayacak)
-function saveWeekly(){
-  alert("Haftalık kayıt yarın sabah başlayacak, bugünkü değer sadece portföy tablosunda gösteriliyor.");
+// Haftalık tablo - otomatik kayıt
+function saveWeeklyAuto(currentData){
+  const todayKey = new Date().toISOString().split("T")[0];
+  const weeklyLog = JSON.parse(localStorage.getItem("weeklyLog") || "{}");
+
+  if(!weeklyLog[todayKey]){
+    weeklyLog[todayKey] = {};
+    currentData.forEach(stock => {
+      weeklyLog[todayKey][stock.code] = stock.value;
+    });
+    localStorage.setItem("weeklyLog", JSON.stringify(weeklyLog));
+  }
+
+  renderWeeklyTable(weeklyLog);
+}
+
+// Haftalık tablo render
+function renderWeeklyTable(weeklyLog){
+  const weeklyHead = document.getElementById("weeklyHead");
+  const weeklyBody = document.getElementById("weeklyBody");
+
+  const dates = Object.keys(weeklyLog).sort();
+
+  // Header
+  let headerRow = "<tr><th>Hisse</th>";
+  dates.forEach(date => {
+    const d = new Date(date);
+    headerRow += `<th>${d.toLocaleDateString("tr-TR")}</th>`;
+  });
+  headerRow += "</tr>";
+  weeklyHead.innerHTML = headerRow;
+
+  // Body
+  let rows = "";
+  portfolio.forEach(stock => {
+    rows += `<tr><td>${stock.code}</td>`;
+    dates.forEach((date,i) => {
+      const value = weeklyLog[date][stock.code];
+      let className = "";
+      if(i>0){
+        const prev = weeklyLog[dates[i-1]][stock.code];
+        if(value>prev) className="positive";
+        else if(value<prev) className="negative";
+      }
+      rows += `<td class="${className}">${formatNumber(value)}</td>`;
+    });
+    rows += "</tr>";
+  });
+  weeklyBody.innerHTML = rows;
 }
 
 // ---------------------
@@ -161,7 +210,7 @@ function saveWeekly(){
 updateClock();
 setInterval(updateClock,1000);
 updatePortfolio();
-setInterval(updatePortfolio,60000);
+setInterval(updatePortfolio,60000); // 1 dakikada bir portföy güncelle
 </script>
 
 </body>
