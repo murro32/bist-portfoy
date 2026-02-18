@@ -113,6 +113,10 @@ async function updatePortfolio() {
   // Portföy verilerini hesapla
   const data = portfolio.map(stock => {
     const price = prices[stock.code];
+    
+    // İlk gelen fiyat açılış fiyatı olarak kaydediliyor
+    if(!stock.openPrice) stock.openPrice = price;
+
     const value = price * stock.lot;
     const profitTL = value - stock.cost;
     const profitPercent = (profitTL / stock.cost) * 100;
@@ -134,7 +138,9 @@ async function updatePortfolio() {
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
         <td>${formatNumber(stock.value)}</td>
-        <td>${formatNumber(stock.price)}</td>
+        <td class="${stock.price > stock.openPrice ? 'positive' : (stock.price < stock.openPrice ? 'negative' : '')}">
+          ${formatNumber(stock.price)}
+        </td>
         <td class="${stock.profitTL>=0?'positive':'negative'}">${formatNumber(stock.profitTL)}</td>
         <td class="${stock.profitPercent>=0?'positive':'negative'}">${stock.profitPercent.toFixed(2)}%</td>
       </tr>`;
