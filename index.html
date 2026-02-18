@@ -53,102 +53,106 @@ button:hover { background:#1d4ed8; }
 <script>
 
 const portfolio = [
-{ code:"THYAO", lot:50, cost:11930.00 },
-{ code:"TUPRS", lot:70, cost:8649.90 },
-{ code:"ASELS", lot:50, cost:3180.50 }
+  { code:"THYAO", lot:50, cost:11930.00 },
+  { code:"TUPRS", lot:70, cost:8649.90 },
+  { code:"ASELS", lot:50, cost:3180.50 }
 ];
 
 async function fetchPrice(symbol){
-try{
-let url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=1d`;
-let res = await fetch(url);
+  try{
+    const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=1d`;
+    const response = await fetch(url);
 
-if(!res.ok) throw new Error("API Hatası");
+    if(!response.ok){
+      throw new Error("API Hatası");
+    }
 
-let data = await res.json();
+    const data = await response.json();
 
-if(!data.chart || !data.chart.result) throw new Error("Veri Yok");
+    if(!data.chart || !data.chart.result){
+      throw new Error("Veri Yok");
+    }
 
-let result = data.chart.result[0];
-let price = result.meta.regularMarketPrice;
+    const result = data.chart.result[0];
+    const price = result.meta.regularMarketPrice;
 
-return price;
-}catch(e){
-console.log(symbol + " veri alınamadı:", e);
-return null;
-}
+    return price;
+
+  } catch(error){
+    console.log(symbol + " veri alınamadı:", error);
+    return null;
+  }
 }
 
 async function updatePortfolio(){
-let tbody = document.getElementById("portfolioBody");
-tbody.innerHTML="";
-let totalValue=0;
-let totalCost=0;
+  const tbody = document.getElementById("portfolioBody");
+  tbody.innerHTML="";
+  let totalValue=0;
+  let totalCost=0;
 
-for(let stock of portfolio){
-let price = await fetchPrice(stock.code);
+  for(let stock of portfolio){
+    const price = await fetchPrice(stock.code);
 
-if(price === null){
-tbody.innerHTML += `
-<tr>
-<td>${stock.code}</td>
-<td colspan="6">Veri alınamadı</td>
-</tr>`;
-continue;
-}
+    if(price === null){
+      tbody.innerHTML += `
+      <tr>
+      <td>${stock.code}</td>
+      <td colspan="6">Veri alınamadı</td>
+      </tr>`;
+      continue;
+    }
 
-let value = price * stock.lot;
-let profit = value - stock.cost;
-let percent = (profit / stock.cost) * 100;
+    const value = price * stock.lot;
+    const profit = value - stock.cost;
+    const percent = (profit / stock.cost) * 100;
 
-totalValue += value;
-totalCost += stock.cost;
+    totalValue += value;
+    totalCost += stock.cost;
 
-tbody.innerHTML += `
-<tr>
-<td>${stock.code}</td>
-<td>${stock.lot}</td>
-<td>${stock.cost.toFixed(2)}</td>
-<td>${price.toFixed(2)}</td>
-<td>${value.toFixed(2)}</td>
-<td class="${profit>=0?'positive':'negative'}">${profit.toFixed(2)}</td>
-<td class="${percent>=0?'positive':'negative'}">${percent.toFixed(2)}%</td>
-</tr>
-`;
-}
+    tbody.innerHTML += `
+    <tr>
+    <td>${stock.code}</td>
+    <td>${stock.lot}</td>
+    <td>${stock.cost.toFixed(2)}</td>
+    <td>${price.toFixed(2)}</td>
+    <td>${value.toFixed(2)}</td>
+    <td class="${profit>=0?'positive':'negative'}">${profit.toFixed(2)}</td>
+    <td class="${percent>=0?'positive':'negative'}">${percent.toFixed(2)}%</td>
+    </tr>`;
+  }
 
-if(totalCost === 0){
-document.getElementById("totalValue").innerText="Veri alınamadı";
-return;
-}
+  if(totalCost === 0){
+    document.getElementById("totalValue").innerText="Veri alınamadı";
+    return;
+  }
 
-let totalProfit = totalValue - totalCost;
-let totalPercent = (totalProfit / totalCost) * 100;
+  const totalProfit = totalValue - totalCost;
+  const totalPercent = (totalProfit / totalCost) * 100;
 
-document.getElementById("totalValue").innerText =
-"Toplam Değer: " + totalValue.toFixed(2) + " TL";
+  document.getElementById("totalValue").innerText =
+  "Toplam Değer: " + totalValue.toFixed(2) + " TL";
 
-document.getElementById("totalProfit").innerHTML =
-"Toplam Kar: <span class='"+(totalProfit>=0?'positive':'negative')+"'>" +
-totalProfit.toFixed(2) + " TL (" + totalPercent.toFixed(2) + "%)</span>";
+  document.getElementById("totalProfit").innerHTML =
+  "Toplam Kar: <span class='"+(totalProfit>=0?'positive':'negative')+"'>" +
+  totalProfit.toFixed(2) + " TL (" + totalPercent.toFixed(2) + "%)</span>";
 }
 
 function saveWeekly(){
-let today = new Date().toLocaleDateString();
-let value = document.getElementById("totalValue").innerText;
-let log = JSON.parse(localStorage.getItem("weekly") || "[]");
-log.push({date:today, value:value});
-localStorage.setItem("weekly", JSON.stringify(log));
-showWeekly();
+  const today = new Date().toLocaleDateString();
+  const value = document.getElementById("totalValue").innerText;
+  const log = JSON.parse(localStorage.getItem("weekly") || "[]");
+  log.push({date:today, value:value});
+  localStorage.setItem("weekly", JSON.stringify(log));
+  showWeekly();
 }
 
 function showWeekly(){
-let log = JSON.parse(localStorage.getItem("weekly") || "[]");
-let div = document.getElementById("weeklyLog");
-div.innerHTML="<h3>Haftalık Kayıt</h3>";
-log.forEach(item=>{
-div.innerHTML += `<div>${item.date} - ${item.value}</div>`;
-});
+  const log = JSON.parse(localStorage.getItem("weekly") || "[]");
+  const div = document.getElementById("weeklyLog");
+  div.innerHTML="<h3>Haftalık Kayıt</h3>";
+  log.forEach(item=>{
+    div.innerHTML += `<div>${item.date} - ${item.value}</div>`;
+  });
 }
 
 updatePortfolio();
