@@ -60,7 +60,7 @@ const portfolio = [
 
 async function fetchPrice(symbol){
   try{
-    const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=1d`;
+    const url = `https://bist-portfoy.vercel.app/api/price?symbol=${symbol}`;
     const response = await fetch(url);
 
     if(!response.ok){
