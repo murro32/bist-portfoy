@@ -97,10 +97,10 @@ button:hover { background:#1d4ed8; }
 <th>Hisse</th>
 <th>Lot</th>
 <th>Maliyet (TL)</th>
-<th>Anlık Fiyat (TL)</th>
 <th>Güncel Hisse Değeri (TL)</th>
-<th>K/Z</th>
+<th>Anlık Fiyat (TL)</th>
 <th>K/Z (TL)</th>
+<th>K/Z (%)</th>
 </tr>
 </thead>
 <tbody id="portfolioBody"></tbody>
@@ -119,6 +119,10 @@ const portfolio = [
   { code:"TUPRS", lot:70, cost:8649.90 },
   { code:"ASELS", lot:50, cost:3180.50 }
 ];
+
+function formatTL(number){
+  return number.toLocaleString("tr-TR", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
 
 function updateClock(){
   const now = new Date();
@@ -167,11 +171,11 @@ async function updatePortfolio(){
       <tr>
       <td>${stock.code}</td>
       <td>${stock.lot}</td>
-      <td>${stock.cost.toFixed(2)} TL</td>
-      <td>${price.toFixed(2)} TL</td>
-      <td>${value.toFixed(2)} TL</td>
+      <td>${formatTL(stock.cost)} TL</td>
+      <td>${formatTL(value)} TL</td>
+      <td>${formatTL(price)} TL</td>
+      <td class="${profitTL>=0?'positive':'negative'}">${formatTL(profitTL)} TL</td>
       <td class="${profitPercent>=0?'positive':'negative'}">${profitPercent.toFixed(2)}%</td>
-      <td class="${profitTL>=0?'positive':'negative'}">${profitTL.toFixed(2)} TL</td>
       </tr>`;
     }
 
@@ -179,11 +183,11 @@ async function updatePortfolio(){
     const totalProfitPercent = (totalProfitTL / totalCost) * 100;
 
     document.getElementById("totalValue").innerText =
-      "Toplam Değer: " + totalValue.toFixed(2) + " TL";
+      "Toplam Değer: " + formatTL(totalValue) + " TL";
 
     document.getElementById("totalProfit").innerHTML =
       "Toplam Kar: <span class='"+(totalProfitTL>=0?'positive':'negative')+"'>" +
-      totalProfitTL.toFixed(2) + " TL (" + totalProfitPercent.toFixed(2) + "%)</span>";
+      formatTL(totalProfitTL) + " TL (" + totalProfitPercent.toFixed(2) + "%)</span>";
 
     document.getElementById("lastUpdate").innerText =
       "Son Yenilenme: " + new Date().toLocaleTimeString();
