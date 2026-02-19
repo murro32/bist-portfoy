@@ -9,7 +9,7 @@ body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15
 h1 { text-align:center; margin-bottom:20px; }
 
 .card {
-  background:#1e293b;
+  background: linear-gradient(145deg, #1e293b, #0f172a);
   padding:15px;
   border-radius:10px;
   margin-bottom:20px;
@@ -61,6 +61,7 @@ td span {
   th, td { padding:8px; font-size:12px; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -104,9 +105,19 @@ td span {
   </table>
 </div>
 
+<div class="card">
+  <h3>Portföy Değeri Grafiği</h3>
+  <canvas id="portfolioChart" height="150"></canvas>
+</div>
+
+<div class="card">
+  <h3>Anlık Hisse Değerleri</h3>
+  <canvas id="stockChart" height="150"></canvas>
+</div>
+
 <script>
 // ---------------------
-// PORTFÖY
+// PORTFÖY VERİLERİ
 // ---------------------
 const portfolio = [
   { code:"THYAO", lot:50, cost:11930.00 },
@@ -168,7 +179,7 @@ async function updatePortfolio() {
     if(!stockData) return;
 
     const price = stockData.price;
-    const referencePrice = stockData.prevClose || price; // DÜNÜN KAPANIŞI
+    const referencePrice = stockData.prevClose || price; // DÜN KAPANIŞI
 
     const value = price * stock.lot;
     const profitTL = value - stock.cost;
@@ -240,7 +251,9 @@ async function updatePortfolio() {
   document.getElementById("lastUpdate").innerText =
     "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
 
-  showDailyLog(); // güncellenmiş günlük logu göster
+  showDailyLog();
+  updatePortfolioChart();
+  updateStockChart();
 }
 
 // ---------------------
@@ -294,15 +307,61 @@ function showDailyLog() {
 }
 
 // ---------------------
+// PORTFÖY CHART
+// ---------------------
+function updatePortfolioChart() {
+  const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
+  const labels = log.map(item => item.date);
+  const values = log.map(item => parseFloat(item.totalValue.replace(/\./g,'').replace(',','.')));
+
+  const ctx = document.getElementById("portfolioChart").getContext('2d');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Toplam Değer',
+        data: values,
+        fill: true,
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34,197,94,0.2)',
+        tension: 0.3
+      }]
+    },
+    options: { responsive:true }
+  });
+}
+
+// ---------------------
+// HİSSE CHART
+// ---------------------
+function updateStockChart() {
+  const labels = portfolio.map(s => s.code);
+  const data = portfolio.map(s => s.price);
+  const backgroundColors = portfolio.map(s =>
+    s.priceDiffPercent > 0 ? '#22c55e' :
+    s.priceDiffPercent < 0 ? '#ef4444' : '#ffffff'
+  );
+
+  const ctx = document.getElementById("stockChart").getContext('2d');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels: labels, datasets:[{ label:'Anlık Fiyat', data:data, backgroundColor: backgroundColors }] },
+    options: { responsive:true }
+  });
+}
+
+// ---------------------
 // BAŞLAT
 // ---------------------
 updateClock();
 setInterval(updateClock,1000);
 
 updatePortfolio();
-setInterval(updatePortfolio,60000); // her 1 dakika güncelle
-
-setInterval(saveEndOfDay,60000); // her dakika kontrol et
+setInterval(updatePortfolio,60000);
+setInterval(saveEndOfDay,60000);
 </script>
 
 </body>
