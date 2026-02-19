@@ -12,12 +12,10 @@ table { width:100%; border-collapse: collapse; min-width:700px; }
 th, td { padding:8px; text-align:center; border-bottom:1px solid #334155; white-space: nowrap; }
 th { background:#334155; }
 tr:nth-child(even){background:#1e293b;}
-.positive { color:#22c55e; }
-.negative { color:#ef4444; }
+.positive { color:#22c55e; font-weight:bold; }
+.negative { color:#ef4444; font-weight:bold; }
 .big { font-size:22px; font-weight:bold; }
 .timebox { text-align:right; font-size:13px; opacity:0.8; }
-button { padding:10px; width:100%; background:#2563eb; color:white; border:none; border-radius:8px; margin-top:10px; cursor:pointer;}
-button:hover { background:#1d4ed8; }
 </style>
 </head>
 <body>
@@ -48,182 +46,149 @@ button:hover { background:#1d4ed8; }
 </table>
 </div>
 
-<div class="card">
-<h3>Günlük Portföy Kaydı</h3>
-<div class="weekly-table">
-<table id="dailyTable">
-  <thead id="dailyHead"></thead>
-  <tbody id="dailyBody"></tbody>
-</table>
-</div>
-</div>
-
 <script>
+
 // ---------------------
-// Portföy
+// PORTFÖY
+// ---------------------
 const portfolio = [
   { code:"THYAO", lot:50, cost:11930.00 },
   { code:"TUPRS", lot:70, cost:8649.90 },
   { code:"ASELS", lot:50, cost:3180.50 },
-  { code:"ENERY", lot:2544.83, cost:5547.72 }, 
-  { code:"ALARK", lot:50, cost:6178.50 }, 
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+  { code:"ALARK", lot:50, cost:6178.50 },
   { code:"MIATK", lot:100, cost:4564.00 },
   { code:"PETKM", lot:200, cost:3664.00 }
 ];
 
-// Türkçe sayı formatı
+// ---------------------
+// FORMAT
+// ---------------------
 function formatNumber(num) {
   return num.toLocaleString("tr-TR",{ minimumFractionDigits:2, maximumFractionDigits:2 });
 }
 
-// Anlık saat
+// ---------------------
+// SAAT
+// ---------------------
 function updateClock() {
   const now = new Date();
-  document.getElementById("liveClock").innerText = "Anlık Saat: " + now.toLocaleTimeString();
+  document.getElementById("liveClock").innerText =
+    "Anlık Saat: " + now.toLocaleTimeString("tr-TR");
 }
 
 // ---------------------
-// Canlı fiyatları API’den al
+// API'DEN FİYAT ÇEK
+// ---------------------
 async function fetchPrices(symbols) {
   try {
     const response = await fetch(`/api/price?symbols=${symbols}`);
-    const prices = await response.json();
-    window.latestPrices = prices;
-    return prices;
+    return await response.json();
   } catch {
-    window.latestPrices = null;
     return null;
   }
 }
 
 // ---------------------
-// Portföy tablosunu güncelle
+// PORTFÖY GÜNCELLE
+// ---------------------
 async function updatePortfolio() {
+
   const tbody = document.getElementById("portfolioBody");
   tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
 
   const symbols = portfolio.map(s => s.code).join(",");
   const prices = await fetchPrices(symbols);
+
   if(!prices){
-    tbody.innerHTML = "<tr><td colspan='7'>Veri alınamadı</td></tr>";
-    document.getElementById("totalValue").innerText = "API Hatası";
+    tbody.innerHTML = "<tr><td colspan='7'>API Hatası</td></tr>";
     return;
   }
 
-  // Portföy verilerini hesapla
-  const data = portfolio.map(stock => {
-    const price = prices[stock.code];
-    
-    // İlk gelen fiyat açılış fiyatı olarak kaydediliyor
-    if(!stock.openPrice) stock.openPrice = price;
+  let data = [];
+
+  portfolio.forEach(stock => {
+
+    const stockData = prices[stock.code];
+    if(!stockData) return;
+
+    const price = stockData.price;
+    const referencePrice = stockData.prevClose; // DÜN KAPANIŞ
 
     const value = price * stock.lot;
     const profitTL = value - stock.cost;
     const profitPercent = (profitTL / stock.cost) * 100;
-    return { ...stock, price, value, profitTL, profitPercent };
+
+    data.push({
+      ...stock,
+      price,
+      referencePrice,
+      value,
+      profitTL,
+      profitPercent
+    });
+
   });
 
-  // Güncel Hisse Değeri büyükten küçüğe sırala
+  // Güncel değere göre büyükten küçüğe sırala
   data.sort((a,b) => b.value - a.value);
 
-  tbody.innerHTML = "";
   let totalValue = 0;
   let totalCost = 0;
-  for (let stock of data){
+
+  tbody.innerHTML = "";
+
+  data.forEach(stock => {
+
     totalValue += stock.value;
     totalCost += stock.cost;
+
+    const priceColor =
+      stock.price > stock.referencePrice ? "positive" :
+      stock.price < stock.referencePrice ? "negative" : "";
+
+    const profitColor =
+      stock.profitTL >= 0 ? "positive" : "negative";
+
     tbody.innerHTML += `
       <tr>
         <td>${stock.code}</td>
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
         <td>${formatNumber(stock.value)}</td>
-        <td class="${stock.price > stock.openPrice ? 'positive' : (stock.price < stock.openPrice ? 'negative' : '')}">
-          ${formatNumber(stock.price)}
-        </td>
-        <td class="${stock.profitTL>=0?'positive':'negative'}">${formatNumber(stock.profitTL)}</td>
-        <td class="${stock.profitPercent>=0?'positive':'negative'}">${stock.profitPercent.toFixed(2)}%</td>
-      </tr>`;
-  }
+        <td class="${priceColor}">${formatNumber(stock.price)}</td>
+        <td class="${profitColor}">${formatNumber(stock.profitTL)}</td>
+        <td class="${profitColor}">${stock.profitPercent.toFixed(2)}%</td>
+      </tr>
+    `;
+  });
 
   const totalProfitTL = totalValue - totalCost;
   const totalProfitPercent = (totalProfitTL / totalCost)*100;
-  document.getElementById("totalValue").innerText = "Toplam Değer: " + formatNumber(totalValue);
-  document.getElementById("totalProfit").innerHTML = 
-    "Toplam Kar: <span class='"+(totalProfitTL>=0?'positive':'negative')+"'>"+formatNumber(totalProfitTL)+" ("+totalProfitPercent.toFixed(2)+"%)</span>";
 
-  document.getElementById("lastUpdate").innerText = "Son Yenilenme: " + new Date().toLocaleTimeString();
+  document.getElementById("totalValue").innerText =
+    "Toplam Değer: " + formatNumber(totalValue);
 
-  // Günlük 18:30 kaydını kontrol et
-  tryDailyEndOfDaySave(data);
-}
+  document.getElementById("totalProfit").innerHTML =
+    "Toplam Kar: <span class='" +
+    (totalProfitTL>=0?"positive":"negative") +
+    "'>" +
+    formatNumber(totalProfitTL) +
+    " (" + totalProfitPercent.toFixed(2) + "%)</span>";
 
-// ---------------------------
-// Günlük 18:30 kaydı
-function tryDailyEndOfDaySave(currentData){
-  const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-
-  // Saat 18:30 civarında çalışacak
-  if(hour === 18 && minute === 30){
-    const dailyLog = JSON.parse(localStorage.getItem("dailyLog") || "{}");
-    const dateKey = now.toISOString().split("T")[0]; // yyyy-mm-dd
-
-    if(dailyLog[dateKey]) return;
-
-    dailyLog[dateKey] = {};
-    currentData.forEach(stock => {
-      dailyLog[dateKey][stock.code] = stock.value;
-    });
-
-    localStorage.setItem("dailyLog", JSON.stringify(dailyLog));
-    console.log("📈 Günlük 18:30 kaydı alındı:", dateKey);
-    renderDailyTable(dailyLog);
-  }
-}
-
-// ---------------------------
-// Günlük tablo render
-function renderDailyTable(dailyLog){
-  const dailyTable = document.getElementById("dailyTable");
-  if(!dailyTable) return;
-
-  const dates = Object.keys(dailyLog).sort();
-  
-  // Başlık
-  let headerRow = "<tr><th>Hisse</th>";
-  dates.forEach(date=>{
-    headerRow += `<th>${new Date(date).toLocaleDateString("tr-TR")} 18:30</th>`;
-  });
-  headerRow += "</tr>";
-  document.getElementById("dailyHead").innerHTML = headerRow;
-
-  // Body
-  let rows = "";
-  portfolio.forEach(stock => {
-    rows += `<tr><td>${stock.code}</td>`;
-    dates.forEach((date,i)=>{
-      const value = dailyLog[date][stock.code];
-      let className = "";
-      if(i>0){
-        const prev = dailyLog[dates[i-1]][stock.code];
-        if(value>prev) className="positive";
-        else if(value<prev) className="negative";
-      }
-      rows += `<td class="${className}">${formatNumber(value)}</td>`;
-    });
-    rows += "</tr>";
-  });
-  document.getElementById("dailyBody").innerHTML = rows;
+  document.getElementById("lastUpdate").innerText =
+    "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
 }
 
 // ---------------------
-// Başlangıç
+// BAŞLAT
+// ---------------------
 updateClock();
 setInterval(updateClock,1000);
+
 updatePortfolio();
-setInterval(updatePortfolio,60000); // her dakika güncelle
+setInterval(updatePortfolio,60000); // her 1 dakika güncelle
+
 </script>
 
 </body>
