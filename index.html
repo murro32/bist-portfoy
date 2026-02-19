@@ -6,17 +6,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
 body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
-h1 { text-align:center; }
+h1 { text-align:center; margin-bottom:20px; }
+
 .card { background:#1e293b; padding:15px; border-radius:10px; margin-bottom:15px; overflow-x:auto; }
-table { width:100%; border-collapse: collapse; min-width:700px; }
-th, td { padding:8px; text-align:center; border-bottom:1px solid #334155; white-space: nowrap; }
-th { background:#334155; }
-tr:nth-child(even){background:#1e293b;}
+
+table {
+  width:100%;
+  border-collapse: collapse;
+  min-width:700px;
+  table-layout: fixed;  /* Sütunları eşit genişlik yapar */
+}
+
+th, td {
+  padding:12px;         /* Daha rahat okunur */
+  text-align:center;
+  border-bottom:1px solid #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+th {
+  background:#334155;
+}
+
+tr:nth-child(even){ background:#1e293b; }
+
 .positive { color:#22c55e; font-weight:bold; }
 .negative { color:#ef4444; font-weight:bold; }
+
 .big { font-size:22px; font-weight:bold; }
+
 .timebox { text-align:right; font-size:13px; opacity:0.8; }
+
+@media screen and (max-width:768px){
+  table { min-width:600px; }
+  th, td { padding:10px; font-size:14px; }
+}
 </style>
+
 </head>
 <body>
 
