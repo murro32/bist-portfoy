@@ -193,10 +193,18 @@ async function updatePortfolio() {
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
         <td>${formatNumber(stock.value)}</td>
-        <td class="${priceColor}">
-          ${formatNumber(stock.price)}
-          <span>(${formatNumber(stock.referencePrice)})</span>
-        </td>
+        const priceDiffPercent = ((stock.price - stock.referencePrice) / stock.referencePrice) * 100;
+const priceDiffColor =
+  priceDiffPercent > 0 ? "positive" :
+  priceDiffPercent < 0 ? "negative" : "";
+
+<td class="${priceDiffColor}">
+  ${formatNumber(stock.price)}
+  <span>
+    (${formatNumber(stock.referencePrice)} ${priceDiffPercent >= 0 ? "+" : ""}${priceDiffPercent.toFixed(2)}%)
+  </span>
+</td>
+
         <td class="${profitColor}">${formatNumber(stock.profitTL)}</td>
         <td class="${profitColor}">${stock.profitPercent.toFixed(2)}%</td>
       </tr>
