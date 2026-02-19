@@ -14,19 +14,25 @@ export default async function handler(req, res) {
     for (const symbol of symbolList) {
 
       const response = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=1d`
+        `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS?interval=1d&range=2d`
       );
 
       const data = await response.json();
 
       if (data.chart && data.chart.result) {
 
-        const meta = data.chart.result[0].meta;
+        const result = data.chart.result[0];
+        const meta = result.meta;
+        const closes = result.indicators.quote[0].close;
+
+        const currentPrice = meta.regularMarketPrice;
+
+        // Son kapanış = bir önceki günün close değeri
+        const previousClose = closes[closes.length - 2];
 
         results[symbol] = {
-          price: meta.regularMarketPrice || 0,
-          open: meta.regularMarketOpen || 0,
-          prevClose: meta.previousClose || 0
+          price: currentPrice,
+          prevClose: previousClose
         };
 
       } else {
