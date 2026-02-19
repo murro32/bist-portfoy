@@ -224,6 +224,35 @@ async function updatePortfolio() {
 }
 
 // ---------------------
+// GÜN SONU KAYDI
+// ---------------------
+function saveEndOfDay() {
+  const now = new Date();
+  const hour = now.getHours();
+  const minutes = now.getMinutes();
+
+  // BIST kapanışı: 18:30
+  if(hour === 18 && minutes === 30){
+    const today = now.toLocaleDateString("tr-TR");
+
+    const totalValueText = document.getElementById("totalValue").innerText.replace("Toplam Değer: ","");
+    const totalProfitText = document.getElementById("totalProfit").innerText.replace(/Toplam Kar: /,'');
+
+    const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
+
+    const index = log.findIndex(item => item.date === today);
+    if(index >=0 ){
+      log[index] = { date: today, totalValue: totalValueText, totalProfit: totalProfitText };
+    } else {
+      log.push({ date: today, totalValue: totalValueText, totalProfit: totalProfitText });
+    }
+
+    localStorage.setItem("dailyEndLog", JSON.stringify(log));
+    console.log("Gün sonu kaydedildi:", today, totalValueText, totalProfitText);
+  }
+}
+
+// ---------------------
 // BAŞLAT
 // ---------------------
 updateClock();
@@ -231,6 +260,8 @@ setInterval(updateClock,1000);
 
 updatePortfolio();
 setInterval(updatePortfolio,60000); // her 1 dakika güncelle
+
+setInterval(saveEndOfDay,60000); // her dakika kontrol et
 </script>
 
 </body>
