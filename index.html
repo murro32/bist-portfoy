@@ -185,12 +185,13 @@ async function updatePortfolio() {
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
         <td>${formatNumber(stock.value)}</td>
-        <td class="${priceColor}">
-          ${formatNumber(stock.price)}
-          <span style="font-size:12px; color:#94a3b8;">
-            (${formatNumber(stock.referencePrice)})
-          </span>
-        </td>
+       <td class="${priceColor}">
+  ${formatNumber(stock.price)}
+  <span style="font-size:10px; color:#94a3b8; display:inline-block; margin-left:4px;">
+    (${formatNumber(stock.referencePrice)})
+  </span>
+</td>
+
         <td class="${profitColor}">${formatNumber(stock.profitTL)}</td>
         <td class="${profitColor}">${stock.profitPercent.toFixed(2)}%</td>
       </tr>
