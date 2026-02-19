@@ -14,16 +14,17 @@ table {
   width:100%;
   border-collapse: collapse;
   min-width:700px;
-  table-layout: fixed;  /* Sütunları eşit genişlik yapar */
+  table-layout: fixed;  /* sütunları eşit yap */
 }
 
 th, td {
-  padding:10px;         /* Daha rahat okunur */
+  padding:12px;
   text-align:center;
   border-bottom:1px solid #334155;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;      /* hücre kırılabilir */
+  overflow: visible;        /* gizlemeyi kaldır */
+  text-overflow: clip;      /* ... kaldır */
+  font-size:14px;
 }
 
 th {
@@ -39,12 +40,20 @@ tr:nth-child(even){ background:#1e293b; }
 
 .timebox { text-align:right; font-size:13px; opacity:0.8; }
 
+/* Parantez içi dünkü kapanış */
+td span {
+  font-size:10px;
+  color:#94a3b8;
+  display:inline;
+  margin-left:4px;
+}
+
+/* Mobil uyum */
 @media screen and (max-width:768px){
   table { min-width:600px; }
   th, td { padding:10px; font-size:14px; }
 }
 </style>
-
 </head>
 <body>
 
@@ -75,7 +84,6 @@ tr:nth-child(even){ background:#1e293b; }
 </div>
 
 <script>
-
 // ---------------------
 // PORTFÖY
 // ---------------------
@@ -185,13 +193,10 @@ async function updatePortfolio() {
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
         <td>${formatNumber(stock.value)}</td>
-       <td class="${priceColor}">
-  ${formatNumber(stock.price)}
-  <span style="font-size:8px; color:#94a3b8; display:inline-block; margin-left:4px;">
-    (${formatNumber(stock.referencePrice)})
-  </span>
-</td>
-
+        <td class="${priceColor}">
+          ${formatNumber(stock.price)}
+          <span>(${formatNumber(stock.referencePrice)})</span>
+        </td>
         <td class="${profitColor}">${formatNumber(stock.profitTL)}</td>
         <td class="${profitColor}">${stock.profitPercent.toFixed(2)}%</td>
       </tr>
