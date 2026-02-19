@@ -8,7 +8,14 @@
 body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
 h1 { text-align:center; margin-bottom:20px; }
 
-.card { background:#1e293b; padding:15px; border-radius:10px; margin-bottom:15px; overflow-x:auto; }
+.card {
+  background:#1e293b;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:20px;
+  overflow-x:auto;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
 
 table {
   width:100%;
@@ -18,20 +25,17 @@ table {
 }
 
 th, td {
-  padding:12px;
+  padding:10px;
   text-align:center;
   border-bottom:1px solid #334155;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  font-size:14px;
+  font-size:13px;
+  white-space:nowrap;
 }
 
-th {
-  background:#334155;
-}
+thead th { position: sticky; top:0; background:#334155; z-index:1; }
 
 tr:nth-child(even){ background:#1e293b; }
+tr:hover { background:#334155; transition:0.2s; }
 
 .positive { color:#22c55e; font-weight:bold; }
 .negative { color:#ef4444; font-weight:bold; }
@@ -39,7 +43,7 @@ tr:nth-child(even){ background:#1e293b; }
 
 .big { font-size:22px; font-weight:bold; }
 
-.timebox { text-align:right; font-size:13px; opacity:0.8; }
+.timebox { text-align:right; font-size:12px; opacity:0.8; margin-top:5px; }
 
 td span {
   font-size:10px;
@@ -48,9 +52,13 @@ td span {
   margin-left:4px;
 }
 
+.daily-positive { color:#22c55e; font-weight:bold; }
+.daily-negative { color:#ef4444; font-weight:bold; }
+.daily-neutral { color:white; }
+
 @media screen and (max-width:768px){
   table { min-width:600px; }
-  th, td { padding:10px; font-size:14px; }
+  th, td { padding:8px; font-size:12px; }
 }
 </style>
 </head>
@@ -80,6 +88,20 @@ td span {
 </thead>
 <tbody id="portfolioBody"></tbody>
 </table>
+</div>
+
+<div class="card">
+  <h3>Günlük Kapanış Logu</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Tarih</th>
+        <th>Toplam Değer</th>
+        <th>Toplam Kar/Zarar</th>
+      </tr>
+    </thead>
+    <tbody id="dailyLogTable"></tbody>
+  </table>
 </div>
 
 <script>
@@ -128,7 +150,6 @@ async function fetchPrices(symbols) {
 // PORTFÖY GÜNCELLE
 // ---------------------
 async function updatePortfolio() {
-
   const tbody = document.getElementById("portfolioBody");
   tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
 
@@ -143,7 +164,6 @@ async function updatePortfolio() {
   let data = [];
 
   portfolio.forEach(stock => {
-
     const stockData = prices[stock.code];
     if(!stockData) return;
 
@@ -165,7 +185,6 @@ async function updatePortfolio() {
       profitTL,
       profitPercent
     });
-
   });
 
   // Güncel değere göre büyükten küçüğe sırala
@@ -177,7 +196,6 @@ async function updatePortfolio() {
   tbody.innerHTML = "";
 
   data.forEach(stock => {
-
     totalValue += stock.value;
     totalCost += stock.cost;
 
@@ -221,6 +239,8 @@ async function updatePortfolio() {
 
   document.getElementById("lastUpdate").innerText =
     "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
+
+  showDailyLog(); // güncellenmiş günlük logu göster
 }
 
 // ---------------------
@@ -231,7 +251,6 @@ function saveEndOfDay() {
   const hour = now.getHours();
   const minutes = now.getMinutes();
 
-  // BIST kapanışı: 18:30
   if(hour === 18 && minutes === 30){
     const today = now.toLocaleDateString("tr-TR");
 
@@ -250,6 +269,28 @@ function saveEndOfDay() {
     localStorage.setItem("dailyEndLog", JSON.stringify(log));
     console.log("Gün sonu kaydedildi:", today, totalValueText, totalProfitText);
   }
+}
+
+// ---------------------
+// GÜNLÜK LOGU GÖSTER
+// ---------------------
+function showDailyLog() {
+  const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
+  const tbody = document.getElementById("dailyLogTable");
+  tbody.innerHTML = "";
+
+  log.forEach(item => {
+    const profitClass =
+      item.totalProfit.includes('-') ? "daily-negative" :
+      item.totalProfit === "0,00" ? "daily-neutral" :
+      "daily-positive";
+
+    tbody.innerHTML += `<tr>
+      <td>${item.date}</td>
+      <td>${item.totalValue}</td>
+      <td class="${profitClass}">${item.totalProfit}</td>
+    </tr>`;
+  });
 }
 
 // ---------------------
