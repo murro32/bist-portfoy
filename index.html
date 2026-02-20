@@ -56,6 +56,26 @@ td span {
 .daily-negative { color:#ef4444; font-weight:bold; }
 .daily-neutral { color:white; }
 
+input {
+  padding:8px;
+  margin:5px;
+  border-radius:6px;
+  border:none;
+  width:160px;
+}
+
+button {
+  padding:8px 15px;
+  border:none;
+  border-radius:6px;
+  background:#22c55e;
+  color:white;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+button:hover { opacity:0.8; }
+
 @media screen and (max-width:768px){
   table { min-width:600px; }
   th, td { padding:8px; font-size:12px; }
@@ -71,6 +91,16 @@ td span {
   <div class="big" id="totalProfit">Toplam Kar: -</div>
   <div class="timebox" id="liveClock"></div>
   <div class="timebox" id="lastUpdate"></div>
+</div>
+
+<!-- YENİ HİSSE EKLE -->
+<div class="card">
+  <h3>Yeni Hisse Ekle</h3>
+  <input type="text" id="newCode" placeholder="Hisse Kodu">
+  <input type="number" id="newLot" placeholder="Lot" step="0.01">
+  <input type="number" id="newTotalValue" placeholder="Toplam Değer (TL)" step="0.01">
+  <input type="number" id="newProfitTL" placeholder="Kar (TL)" step="0.01">
+  <button onclick="addStock()">Ekle</button>
 </div>
 
 <div class="card">
@@ -105,6 +135,7 @@ td span {
 </div>
 
 <script>
+
 // ---------------------
 // PORTFÖY
 // ---------------------
@@ -132,6 +163,32 @@ function updateClock() {
   const now = new Date();
   document.getElementById("liveClock").innerText =
     "Anlık Saat: " + now.toLocaleTimeString("tr-TR");
+}
+
+// ---------------------
+// YENİ HİSSE EKLE
+// ---------------------
+function addStock(){
+  const code = document.getElementById("newCode").value.toUpperCase().trim();
+  const lot = parseFloat(document.getElementById("newLot").value);
+  const totalValue = parseFloat(document.getElementById("newTotalValue").value);
+  const profitTL = parseFloat(document.getElementById("newProfitTL").value);
+
+  if(!code || !lot || !totalValue || profitTL === null){
+    alert("Tüm alanları doldurun.");
+    return;
+  }
+
+  const cost = totalValue - profitTL; // OTOMATİK MALİYET
+
+  portfolio.push({ code, lot, cost });
+
+  document.getElementById("newCode").value = "";
+  document.getElementById("newLot").value = "";
+  document.getElementById("newTotalValue").value = "";
+  document.getElementById("newProfitTL").value = "";
+
+  updatePortfolio();
 }
 
 // ---------------------
@@ -168,12 +225,11 @@ async function updatePortfolio() {
     if(!stockData) return;
 
     const price = stockData.price;
-    const referencePrice = stockData.prevClose || price; // DÜNÜN KAPANIŞI
+    const referencePrice = stockData.prevClose || price;
 
     const value = price * stock.lot;
     const profitTL = value - stock.cost;
     const profitPercent = (profitTL / stock.cost) * 100;
-
     const priceDiffPercent = ((price - referencePrice) / referencePrice) * 100;
 
     data.push({
@@ -187,12 +243,10 @@ async function updatePortfolio() {
     });
   });
 
-  // Güncel değere göre büyükten küçüğe sırala
   data.sort((a,b) => b.value - a.value);
 
   let totalValue = 0;
   let totalCost = 0;
-
   tbody.innerHTML = "";
 
   data.forEach(stock => {
@@ -240,7 +294,7 @@ async function updatePortfolio() {
   document.getElementById("lastUpdate").innerText =
     "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
 
-  showDailyLog(); // güncellenmiş günlük logu göster
+  showDailyLog();
 }
 
 // ---------------------
@@ -267,7 +321,6 @@ function saveEndOfDay() {
     }
 
     localStorage.setItem("dailyEndLog", JSON.stringify(log));
-    console.log("Gün sonu kaydedildi:", today, totalValueText, totalProfitText);
   }
 }
 
@@ -300,9 +353,9 @@ updateClock();
 setInterval(updateClock,1000);
 
 updatePortfolio();
-setInterval(updatePortfolio,60000); // her 1 dakika güncelle
+setInterval(updatePortfolio,60000);
 
-setInterval(saveEndOfDay,60000); // her dakika kontrol et
+setInterval(saveEndOfDay,60000);
 </script>
 
 </body>
