@@ -48,15 +48,20 @@ tr:hover { background:#334155; transition:0.2s; }
 td span {
   font-size:10px;
   color:#94a3b8;
+  display:inline;
   margin-left:4px;
 }
+
+.daily-positive { color:#22c55e; font-weight:bold; }
+.daily-negative { color:#ef4444; font-weight:bold; }
+.daily-neutral { color:white; }
 
 input {
   padding:8px;
   margin:5px;
   border-radius:6px;
   border:none;
-  width:150px;
+  width:160px;
 }
 
 button {
@@ -88,12 +93,13 @@ button:hover { opacity:0.8; }
   <div class="timebox" id="lastUpdate"></div>
 </div>
 
-<!-- YENİ HİSSE EKLEME ALANI -->
+<!-- YENİ HİSSE EKLE -->
 <div class="card">
   <h3>Yeni Hisse Ekle</h3>
-  <input type="text" id="newCode" placeholder="Hisse Kodu (örn: KCHOL)">
+  <input type="text" id="newCode" placeholder="Hisse Kodu">
   <input type="number" id="newLot" placeholder="Lot" step="0.01">
-  <input type="number" id="newCost" placeholder="Toplam Maliyet (TL)" step="0.01">
+  <input type="number" id="newTotalValue" placeholder="Toplam Değer (TL)" step="0.01">
+  <input type="number" id="newProfitTL" placeholder="Kar (TL)" step="0.01">
   <button onclick="addStock()">Ekle</button>
 </div>
 
@@ -114,12 +120,26 @@ button:hover { opacity:0.8; }
 </table>
 </div>
 
+<div class="card">
+  <h3>Günlük Kapanış Logu</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Tarih</th>
+        <th>Toplam Değer</th>
+        <th>Toplam Kar/Zarar</th>
+      </tr>
+    </thead>
+    <tbody id="dailyLogTable"></tbody>
+  </table>
+</div>
+
 <script>
 
 // ---------------------
 // PORTFÖY
 // ---------------------
-let portfolio = [
+const portfolio = [
   { code:"THYAO", lot:50, cost:11930.00 },
   { code:"TUPRS", lot:70, cost:8649.90 },
   { code:"ASELS", lot:50, cost:3180.50 },
@@ -146,23 +166,27 @@ function updateClock() {
 }
 
 // ---------------------
-// HİSSE EKLE
+// YENİ HİSSE EKLE
 // ---------------------
 function addStock(){
   const code = document.getElementById("newCode").value.toUpperCase().trim();
   const lot = parseFloat(document.getElementById("newLot").value);
-  const cost = parseFloat(document.getElementById("newCost").value);
+  const totalValue = parseFloat(document.getElementById("newTotalValue").value);
+  const profitTL = parseFloat(document.getElementById("newProfitTL").value);
 
-  if(!code || !lot || !cost){
-    alert("Lütfen tüm alanları doldurun.");
+  if(!code || !lot || !totalValue || profitTL === null){
+    alert("Tüm alanları doldurun.");
     return;
   }
+
+  const cost = totalValue - profitTL; // OTOMATİK MALİYET
 
   portfolio.push({ code, lot, cost });
 
   document.getElementById("newCode").value = "";
   document.getElementById("newLot").value = "";
-  document.getElementById("newCost").value = "";
+  document.getElementById("newTotalValue").value = "";
+  document.getElementById("newProfitTL").value = "";
 
   updatePortfolio();
 }
@@ -194,32 +218,62 @@ async function updatePortfolio() {
     return;
   }
 
-  let totalValue = 0;
-  let totalCost = 0;
-
-  tbody.innerHTML = "";
+  let data = [];
 
   portfolio.forEach(stock => {
     const stockData = prices[stock.code];
     if(!stockData) return;
 
     const price = stockData.price;
+    const referencePrice = stockData.prevClose || price;
+
     const value = price * stock.lot;
     const profitTL = value - stock.cost;
     const profitPercent = (profitTL / stock.cost) * 100;
+    const priceDiffPercent = ((price - referencePrice) / referencePrice) * 100;
 
-    totalValue += value;
+    data.push({
+      ...stock,
+      price,
+      referencePrice,
+      priceDiffPercent,
+      value,
+      profitTL,
+      profitPercent
+    });
+  });
+
+  data.sort((a,b) => b.value - a.value);
+
+  let totalValue = 0;
+  let totalCost = 0;
+  tbody.innerHTML = "";
+
+  data.forEach(stock => {
+    totalValue += stock.value;
     totalCost += stock.cost;
+
+    const priceColor =
+      stock.priceDiffPercent > 0 ? "positive" :
+      stock.priceDiffPercent < 0 ? "negative" : "neutral";
+
+    const profitColor =
+      stock.profitTL >= 0 ? "positive" : "negative";
 
     tbody.innerHTML += `
       <tr>
         <td>${stock.code}</td>
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
-        <td>${formatNumber(value)}</td>
-        <td>${formatNumber(price)}</td>
-        <td class="${profitTL>=0?'positive':'negative'}">${formatNumber(profitTL)}</td>
-        <td class="${profitTL>=0?'positive':'negative'}">${profitPercent.toFixed(2)}%</td>
+        <td>${formatNumber(stock.value)}</td>
+        <td class="${priceColor}">
+          ${formatNumber(stock.price)}
+          <span>
+            (${formatNumber(stock.referencePrice)} ${stock.priceDiffPercent>=0?'+':''}${stock.priceDiffPercent.toFixed(2)}%)
+          </span>
+        </td>
+        <td class="${profitColor}">${formatNumber(stock.profitTL)}</td>
+        <td class="${profitColor}">${stock.profitPercent.toFixed(2)}%</td>
       </tr>
     `;
   });
@@ -239,6 +293,57 @@ async function updatePortfolio() {
 
   document.getElementById("lastUpdate").innerText =
     "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
+
+  showDailyLog();
+}
+
+// ---------------------
+// GÜN SONU KAYDI
+// ---------------------
+function saveEndOfDay() {
+  const now = new Date();
+  const hour = now.getHours();
+  const minutes = now.getMinutes();
+
+  if(hour === 18 && minutes === 30){
+    const today = now.toLocaleDateString("tr-TR");
+
+    const totalValueText = document.getElementById("totalValue").innerText.replace("Toplam Değer: ","");
+    const totalProfitText = document.getElementById("totalProfit").innerText.replace(/Toplam Kar: /,'');
+
+    const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
+
+    const index = log.findIndex(item => item.date === today);
+    if(index >=0 ){
+      log[index] = { date: today, totalValue: totalValueText, totalProfit: totalProfitText };
+    } else {
+      log.push({ date: today, totalValue: totalValueText, totalProfit: totalProfitText });
+    }
+
+    localStorage.setItem("dailyEndLog", JSON.stringify(log));
+  }
+}
+
+// ---------------------
+// GÜNLÜK LOGU GÖSTER
+// ---------------------
+function showDailyLog() {
+  const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
+  const tbody = document.getElementById("dailyLogTable");
+  tbody.innerHTML = "";
+
+  log.forEach(item => {
+    const profitClass =
+      item.totalProfit.includes('-') ? "daily-negative" :
+      item.totalProfit === "0,00" ? "daily-neutral" :
+      "daily-positive";
+
+    tbody.innerHTML += `<tr>
+      <td>${item.date}</td>
+      <td>${item.totalValue}</td>
+      <td class="${profitClass}">${item.totalProfit}</td>
+    </tr>`;
+  });
 }
 
 // ---------------------
@@ -250,6 +355,7 @@ setInterval(updateClock,1000);
 updatePortfolio();
 setInterval(updatePortfolio,60000);
 
+setInterval(saveEndOfDay,60000);
 </script>
 
 </body>
