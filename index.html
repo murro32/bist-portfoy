@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
 <meta charset="UTF-8" />
 <title>BIST Portföy Takip</title>
@@ -48,37 +48,32 @@ tr:hover { background:#334155; transition:0.2s; }
 td span {
   font-size:10px;
   color:#94a3b8;
-  display:inline;
   margin-left:4px;
 }
 
-.daily-positive { color:#22c55e; font-weight:bold; }
-.daily-negative { color:#ef4444; font-weight:bold; }
-.daily-neutral { color:white; }
-
-#addStockBtn {
-  background:#2563eb;
+input {
+  padding:8px;
+  margin:5px;
+  border-radius:6px;
   border:none;
-  padding:10px 15px;
-  border-radius:5px;
-  cursor:pointer;
-  color:white;
-  margin-bottom:15px;
+  width:150px;
 }
 
-.stock-card {
-  background:#1e293b;
-  margin:8px 0;
-  padding:10px;
-  border-radius:8px;
+button {
+  padding:8px 15px;
+  border:none;
+  border-radius:6px;
+  background:#22c55e;
+  color:white;
+  cursor:pointer;
+  font-weight:bold;
 }
+
+button:hover { opacity:0.8; }
 
 @media screen and (max-width:768px){
-  table { display:none; }
-  .stock-card { display:block; }
-}
-@media screen and (min-width:769px){
-  .stock-card { display:none; }
+  table { min-width:600px; }
+  th, td { padding:8px; font-size:12px; }
 }
 </style>
 </head>
@@ -91,7 +86,15 @@ td span {
   <div class="big" id="totalProfit">Toplam Kar: -</div>
   <div class="timebox" id="liveClock"></div>
   <div class="timebox" id="lastUpdate"></div>
-  <button id="addStockBtn">Hisse Ekle</button>
+</div>
+
+<!-- YENİ HİSSE EKLEME ALANI -->
+<div class="card">
+  <h3>Yeni Hisse Ekle</h3>
+  <input type="text" id="newCode" placeholder="Hisse Kodu (örn: KCHOL)">
+  <input type="number" id="newLot" placeholder="Lot" step="0.01">
+  <input type="number" id="newCost" placeholder="Toplam Maliyet (TL)" step="0.01">
+  <button onclick="addStock()">Ekle</button>
 </div>
 
 <div class="card">
@@ -109,15 +112,22 @@ td span {
 </thead>
 <tbody id="portfolioBody"></tbody>
 </table>
-
-<div id="mobileCards"></div>
 </div>
 
 <script>
+
 // ---------------------
 // PORTFÖY
 // ---------------------
-let portfolio = JSON.parse(localStorage.getItem("portfolio") || "[]");
+let portfolio = [
+  { code:"THYAO", lot:50, cost:11930.00 },
+  { code:"TUPRS", lot:70, cost:8649.90 },
+  { code:"ASELS", lot:50, cost:3180.50 },
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+  { code:"ALARK", lot:50, cost:6178.50 },
+  { code:"MIATK", lot:100, cost:4564.00 },
+  { code:"PETKM", lot:200, cost:3664.00 }
+];
 
 // ---------------------
 // FORMAT
@@ -136,6 +146,28 @@ function updateClock() {
 }
 
 // ---------------------
+// HİSSE EKLE
+// ---------------------
+function addStock(){
+  const code = document.getElementById("newCode").value.toUpperCase().trim();
+  const lot = parseFloat(document.getElementById("newLot").value);
+  const cost = parseFloat(document.getElementById("newCost").value);
+
+  if(!code || !lot || !cost){
+    alert("Lütfen tüm alanları doldurun.");
+    return;
+  }
+
+  portfolio.push({ code, lot, cost });
+
+  document.getElementById("newCode").value = "";
+  document.getElementById("newLot").value = "";
+  document.getElementById("newCost").value = "";
+
+  updatePortfolio();
+}
+
+// ---------------------
 // API'DEN FİYAT ÇEK
 // ---------------------
 async function fetchPrices(symbols) {
@@ -151,16 +183,8 @@ async function fetchPrices(symbols) {
 // PORTFÖY GÜNCELLE
 // ---------------------
 async function updatePortfolio() {
-  if(portfolio.length === 0){
-    document.getElementById("portfolioBody").innerHTML = "<tr><td colspan='7'>Hisse eklemediniz</td></tr>";
-    document.getElementById("mobileCards").innerHTML = "";
-    return;
-  }
-
   const tbody = document.getElementById("portfolioBody");
-  const mobileDiv = document.getElementById("mobileCards");
   tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
-  mobileDiv.innerHTML = "";
 
   const symbols = portfolio.map(s => s.code).join(",");
   const prices = await fetchPrices(symbols);
@@ -184,78 +208,49 @@ async function updatePortfolio() {
     const profitTL = value - stock.cost;
     const profitPercent = (profitTL / stock.cost) * 100;
 
-    const priceDiffPercent = ((price - (stockData.prevClose || price)) / (stockData.prevClose || price)) * 100;
-
     totalValue += value;
     totalCost += stock.cost;
 
-    const priceColor = priceDiffPercent>0?"positive":priceDiffPercent<0?"negative":"neutral";
-    const profitColor = profitTL>=0?"positive":"negative";
-
-    // PC Tablo
     tbody.innerHTML += `
       <tr>
         <td>${stock.code}</td>
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
         <td>${formatNumber(value)}</td>
-        <td class="${priceColor}">
-          ${formatNumber(price)}
-          <span>
-            (${formatNumber(stockData.prevClose || price)} ${priceDiffPercent>=0?'+':''}${priceDiffPercent.toFixed(2)}%)
-          </span>
-        </td>
-        <td class="${profitColor}">${formatNumber(profitTL)}</td>
-        <td class="${profitColor}">${profitPercent.toFixed(2)}%</td>
+        <td>${formatNumber(price)}</td>
+        <td class="${profitTL>=0?'positive':'negative'}">${formatNumber(profitTL)}</td>
+        <td class="${profitTL>=0?'positive':'negative'}">${profitPercent.toFixed(2)}%</td>
       </tr>
-    `;
-
-    // Mobil Kart
-    mobileDiv.innerHTML += `
-      <div class="stock-card">
-        <div><strong>${stock.code}</strong></div>
-        <div>Lot: ${stock.lot}</div>
-        <div>Maliyet: ${formatNumber(stock.cost)}</div>
-        <div>Güncel Değer: ${formatNumber(value)}</div>
-        <div>Fiyat: <span class="${priceColor}">${formatNumber(price)}</span></div>
-        <div>K/Z: <span class="${profitColor}">${formatNumber(profitTL)} (${profitPercent.toFixed(2)}%)</span></div>
-      </div>
     `;
   });
 
   const totalProfitTL = totalValue - totalCost;
-  const totalProfitPercent = (totalProfitTL / totalCost) * 100;
+  const totalProfitPercent = (totalProfitTL / totalCost)*100;
 
-  document.getElementById("totalValue").innerText = "Toplam Değer: " + formatNumber(totalValue);
+  document.getElementById("totalValue").innerText =
+    "Toplam Değer: " + formatNumber(totalValue);
+
   document.getElementById("totalProfit").innerHTML =
-    "Toplam Kar: <span class='" + (totalProfitTL>=0?"positive":"negative") + "'>" +
-    formatNumber(totalProfitTL) + " (" + totalProfitPercent.toFixed(2) + "%)</span>";
+    "Toplam Kar: <span class='" +
+    (totalProfitTL>=0?"positive":"negative") +
+    "'>" +
+    formatNumber(totalProfitTL) +
+    " (" + totalProfitPercent.toFixed(2) + "%)</span>";
 
   document.getElementById("lastUpdate").innerText =
     "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
 }
 
 // ---------------------
-// HİSSE EKLE
-// ---------------------
-document.getElementById("addStockBtn").addEventListener("click",()=>{
-  const code = prompt("Hisse Kodu Girin (ör: THYAO)").toUpperCase();
-  const lot = parseFloat(prompt("Lot sayısı girin"));
-  const price = parseFloat(prompt("Hisse başı fiyat girin (TL)"));
-  if(!code || !lot || !price){ alert("Geçerli değerler girin!"); return; }
-  const cost = lot * price;
-  portfolio.push({code, lot, cost});
-  localStorage.setItem("portfolio", JSON.stringify(portfolio));
-  updatePortfolio();
-});
-
-// ---------------------
 // BAŞLAT
 // ---------------------
 updateClock();
 setInterval(updateClock,1000);
+
 updatePortfolio();
 setInterval(updatePortfolio,60000);
+
 </script>
+
 </body>
 </html>
