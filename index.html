@@ -140,23 +140,9 @@ button:hover { opacity:0.8; }
 <script>
 
 // ---------------------
-// PORTFÖY (ESKİ HİSSELER)
+// PORTFÖY (localStorage'dan yükleniyor, yoksa boş)
 // ---------------------
-let portfolio = [
-  { code:"THYAO", lot:50, cost:11930.00 },
-  { code:"TUPRS", lot:70, cost:8649.90 },
-  { code:"ASELS", lot:50, cost:3180.50 },
-  { code:"ENERY", lot:2544.83, cost:5547.72 },
-  { code:"ALARK", lot:50, cost:6178.50 },
-  { code:"MIATK", lot:100, cost:4564.00 },
-  { code:"PETKM", lot:200, cost:3664.00 }
-];
-
-// ---------------------
-// LOCALSTORAGE'DAN YENİ EKLENENLERİ ÇEK
-// ---------------------
-const storedStocks = JSON.parse(localStorage.getItem("addedStocks") || "[]");
-portfolio = portfolio.concat(storedStocks);
+let portfolio = JSON.parse(localStorage.getItem("portfolio")) || [];
 
 // ---------------------
 // FORMAT
@@ -193,11 +179,10 @@ function addStock(){
 
   portfolio.push(newStock);
 
-  // localStorage'a kaydet (kalıcı)
-  let addedStocks = JSON.parse(localStorage.getItem("addedStocks") || "[]");
-  addedStocks.push(newStock);
-  localStorage.setItem("addedStocks", JSON.stringify(addedStocks));
+  // localStorage'a kaydet
+  localStorage.setItem("portfolio", JSON.stringify(portfolio));
 
+  // inputları temizle
   document.getElementById("newCode").value = "";
   document.getElementById("newLot").value = "";
   document.getElementById("newTotalValue").value = "";
@@ -223,6 +208,13 @@ async function fetchPrices(symbols) {
 // ---------------------
 async function updatePortfolio() {
   const tbody = document.getElementById("portfolioBody");
+  if(portfolio.length === 0){
+    tbody.innerHTML = "<tr><td colspan='7'>Henüz hisse yok</td></tr>";
+    document.getElementById("totalValue").innerText = "Toplam Değer: 0,00";
+    document.getElementById("totalProfit").innerText = "Toplam Kar: 0,00";
+    return;
+  }
+
   tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
 
   const symbols = portfolio.map(s => s.code).join(",");
@@ -284,7 +276,6 @@ async function updatePortfolio() {
 // ---------------------
 updateClock();
 setInterval(updateClock,1000);
-
 updatePortfolio();
 setInterval(updatePortfolio,60000);
 
