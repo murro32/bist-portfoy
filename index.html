@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8" />
-<title>Portföy Takip</title>
+<title>BIST Portföy Takip</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
 body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
@@ -13,25 +13,36 @@ h1 { text-align:center; margin-bottom:20px; }
   padding:15px;
   border-radius:10px;
   margin-bottom:20px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.3);
+  overflow-x:auto;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 table {
   width:100%;
   border-collapse: collapse;
-  margin-top:10px;
+  min-width:700px;
+  table-layout: fixed;
 }
 
 th, td {
   padding:10px;
   text-align:center;
   border-bottom:1px solid #334155;
+  font-size:13px;
+  white-space:nowrap;
 }
 
-th { background:#334155; }
+thead th { position: sticky; top:0; background:#334155; z-index:1; }
+
+tr:nth-child(even){ background:#1e293b; }
+tr:hover { background:#334155; transition:0.2s; }
 
 .positive { color:#22c55e; font-weight:bold; }
 .negative { color:#ef4444; font-weight:bold; }
+
+.big { font-size:22px; font-weight:bold; }
+
+.timebox { text-align:right; font-size:12px; opacity:0.8; margin-top:5px; }
 
 input {
   padding:8px;
@@ -53,7 +64,10 @@ button {
 
 button:hover { opacity:0.8; }
 
-.big { font-size:20px; font-weight:bold; margin-bottom:5px; }
+@media screen and (max-width:768px){
+  table { min-width:600px; }
+  th, td { padding:8px; font-size:12px; }
+}
 </style>
 </head>
 <body>
@@ -61,101 +75,154 @@ button:hover { opacity:0.8; }
 <h1>📊 Portföy Takip</h1>
 
 <div class="card">
-  <div class="big" id="totalValue">Toplam Değer: 0,00 TL</div>
-  <div class="big" id="totalProfit">Toplam Kar: 0,00 TL (0%)</div>
+  <div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
+  <div class="big" id="totalProfit">Toplam Kar: -</div>
+  <div class="timebox" id="liveClock"></div>
+  <div class="timebox" id="lastUpdate"></div>
 </div>
 
+<!-- YENİ HİSSE EKLE -->
 <div class="card">
-  <h3>Hisse Ekle</h3>
-  <input type="text" id="code" placeholder="Hisse Kodu">
-  <input type="number" id="lot" placeholder="Lot">
-  <input type="number" id="value" placeholder="Toplam Değer (TL)">
-  <input type="number" id="profitTL" placeholder="Kar (TL)">
-  <input type="number" id="profitPercent" placeholder="Kar (%)">
+  <h3>Yeni Hisse Ekle</h3>
+  <input type="text" id="newCode" placeholder="Hisse Kodu">
+  <input type="number" id="newLot" placeholder="Lot">
+  <input type="number" id="newTotalValue" placeholder="Toplam Değer (TL)">
+  <input type="number" id="newProfitTL" placeholder="Kar (TL)">
   <button onclick="addStock()">Ekle</button>
 </div>
 
 <div class="card">
-  <table>
-    <thead>
-      <tr>
-        <th>Hisse</th>
-        <th>Lot</th>
-        <th>Maliyet</th>
-        <th>Toplam Değer</th>
-        <th>Kar (TL)</th>
-        <th>Kar (%)</th>
-      </tr>
-    </thead>
-    <tbody id="portfolioBody"></tbody>
-  </table>
+<table>
+<thead>
+<tr>
+  <th>Hisse</th>
+  <th>Lot</th>
+  <th>Maliyet(TL)</th>
+  <th>Güncel Hisse Değeri(TL)</th>
+  <th>Anlık Fiyat(TL)</th>
+  <th>K/Z(TL)</th>
+  <th>K/Z(%)</th>
+</tr>
+</thead>
+<tbody id="portfolioBody"></tbody>
+</table>
 </div>
 
 <script>
 
-let portfolio = [];
+let portfolio = [
+  { code:"THYAO", lot:50, cost:11930.00 },
+  { code:"TUPRS", lot:70, cost:8649.90 },
+  { code:"ASELS", lot:50, cost:3180.50 },
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+  { code:"ALARK", lot:50, cost:6178.50 },
+  { code:"MIATK", lot:100, cost:4564.00 },
+  { code:"PETKM", lot:200, cost:3664.00 }
+];
 
-function formatNumber(num){
-  return num.toLocaleString("tr-TR",{minimumFractionDigits:2, maximumFractionDigits:2});
+function formatNumber(num) {
+  return num.toLocaleString("tr-TR",{ minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById("liveClock").innerText =
+    "Anlık Saat: " + now.toLocaleTimeString("tr-TR");
 }
 
 function addStock(){
-  const code = document.getElementById("code").value.toUpperCase();
-  const lot = parseFloat(document.getElementById("lot").value);
-  const value = parseFloat(document.getElementById("value").value);
-  const profitTL = parseFloat(document.getElementById("profitTL").value);
-  const profitPercent = parseFloat(document.getElementById("profitPercent").value);
+  const code = document.getElementById("newCode").value.toUpperCase().trim();
+  const lot = parseFloat(document.getElementById("newLot").value);
+  const totalValue = parseFloat(document.getElementById("newTotalValue").value);
+  const profitTL = parseFloat(document.getElementById("newProfitTL").value);
 
-  if(!code || !lot || !value || profitTL === null || profitPercent === null){
+  if(!code || !lot || !totalValue || profitTL === null){
     alert("Tüm alanları doldurun.");
     return;
   }
 
-  const cost = value - profitTL; // OTOMATİK MALİYET
+  const cost = totalValue - profitTL; // OTOMATİK MALİYET
 
-  portfolio.push({ code, lot, cost, value, profitTL, profitPercent });
+  portfolio.push({ code, lot, cost });
 
-  updateTable();
+  document.querySelectorAll("#newCode,#newLot,#newTotalValue,#newProfitTL")
+    .forEach(input => input.value="");
 
-  document.querySelectorAll("input").forEach(input => input.value="");
+  updatePortfolio();
 }
 
-function updateTable(){
+async function fetchPrices(symbols) {
+  try {
+    const response = await fetch(`https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`);
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function updatePortfolio() {
   const tbody = document.getElementById("portfolioBody");
-  tbody.innerHTML = "";
+  tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
+
+  const symbols = portfolio.map(s => s.code).join(",");
+  const prices = await fetchPrices(symbols);
+
+  if(!prices){
+    tbody.innerHTML = "<tr><td colspan='7'>API Hatası</td></tr>";
+    return;
+  }
 
   let totalValue = 0;
   let totalCost = 0;
+  tbody.innerHTML = "";
 
   portfolio.forEach(stock => {
+    const stockData = prices[stock.code];
+    if(!stockData) return;
 
-    totalValue += stock.value;
+    const price = stockData.price;
+    const value = price * stock.lot;
+    const profitTL = value - stock.cost;
+    const profitPercent = (profitTL / stock.cost) * 100;
+
+    totalValue += value;
     totalCost += stock.cost;
 
     tbody.innerHTML += `
       <tr>
         <td>${stock.code}</td>
         <td>${stock.lot}</td>
-        <td>${formatNumber(stock.cost)} TL</td>
-        <td>${formatNumber(stock.value)} TL</td>
-        <td class="${stock.profitTL>=0?'positive':'negative'}">${formatNumber(stock.profitTL)} TL</td>
-        <td class="${stock.profitPercent>=0?'positive':'negative'}">${stock.profitPercent}%</td>
+        <td>${formatNumber(stock.cost)}</td>
+        <td>${formatNumber(value)}</td>
+        <td>${formatNumber(price)}</td>
+        <td class="${profitTL>=0?'positive':'negative'}">${formatNumber(profitTL)}</td>
+        <td class="${profitTL>=0?'positive':'negative'}">${profitPercent.toFixed(2)}%</td>
       </tr>
     `;
   });
 
-  const totalProfit = totalValue - totalCost;
-  const totalPercent = totalCost === 0 ? 0 : (totalProfit/totalCost)*100;
+  const totalProfitTL = totalValue - totalCost;
+  const totalProfitPercent = (totalProfitTL / totalCost)*100;
 
   document.getElementById("totalValue").innerText =
-    "Toplam Değer: " + formatNumber(totalValue) + " TL";
+    "Toplam Değer: " + formatNumber(totalValue);
 
   document.getElementById("totalProfit").innerHTML =
     "Toplam Kar: <span class='" +
-    (totalProfit>=0?'positive':'negative') +
-    "'>" + formatNumber(totalProfit) + " TL (" +
-    totalPercent.toFixed(2) + "%)</span>";
+    (totalProfitTL>=0?"positive":"negative") +
+    "'>" +
+    formatNumber(totalProfitTL) +
+    " (" + totalProfitPercent.toFixed(2) + "%)</span>";
+
+  document.getElementById("lastUpdate").innerText =
+    "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
 }
+
+updateClock();
+setInterval(updateClock,1000);
+
+updatePortfolio();
+setInterval(updatePortfolio,60000);
 
 </script>
 
