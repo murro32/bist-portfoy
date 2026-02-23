@@ -48,33 +48,12 @@ tr:hover { background:#334155; transition:0.2s; }
 td span {
   font-size:10px;
   color:#94a3b8;
-  display:inline;
   margin-left:4px;
 }
 
 .daily-positive { color:#22c55e; font-weight:bold; }
 .daily-negative { color:#ef4444; font-weight:bold; }
 .daily-neutral { color:white; }
-
-input {
-  padding:8px;
-  margin:5px;
-  border-radius:6px;
-  border:none;
-  width:160px;
-}
-
-button {
-  padding:8px 15px;
-  border:none;
-  border-radius:6px;
-  background:#22c55e;
-  color:white;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-button:hover { opacity:0.8; }
 
 @media screen and (max-width:768px){
   table { min-width:600px; }
@@ -91,16 +70,6 @@ button:hover { opacity:0.8; }
   <div class="big" id="totalProfit">Toplam Kar: -</div>
   <div class="timebox" id="liveClock"></div>
   <div class="timebox" id="lastUpdate"></div>
-</div>
-
-<!-- YENİ HİSSE EKLE -->
-<div class="card">
-  <h3>Yeni Hisse Ekle</h3>
-  <input type="text" id="newCode" placeholder="Hisse Kodu">
-  <input type="number" id="newLot" placeholder="Lot" step="0.01">
-  <input type="number" id="newTotalValue" placeholder="Toplam Değer (TL)" step="0.01">
-  <input type="number" id="newProfitTL" placeholder="Kar (TL)" step="0.01">
-  <button onclick="addStock()">Ekle</button>
 </div>
 
 <div class="card">
@@ -136,9 +105,7 @@ button:hover { opacity:0.8; }
 
 <script>
 
-// ---------------------
-// PORTFÖY
-// ---------------------
+// PORTFÖY (Tüm eklediğin hisseler dahil)
 const portfolio = [
   { code:"THYAO", lot:50, cost:11930.00 },
   { code:"TUPRS", lot:70, cost:8649.90 },
@@ -148,76 +115,42 @@ const portfolio = [
   { code:"MIATK", lot:100, cost:4564.00 },
   { code:"PETKM", lot:200, cost:3664.00 },
   { code:"JANTS", lot:198.31, cost:7139.20 },
-{ code:"FZLGY", lot:204.40, cost:461.95 },
-{ code:"TABGD", lot:9, cost:1138.68 },
-{ code:"SKTAS", lot:650.19, cost:1176.85 },
-{ code:"IZENR", lot:212.50, cost:1651.12 },
-{ code:"ASUZU", lot:30, cost:1532.40 },
-{ code:"BASGZ", lot:40, cost:556.40 },
-{ code:"CANTE", lot:1065.96, cost:2121.27 },
-{ code:"AKSEN", lot:25, cost:1007.75 },
-{ code:"PENTA", lot:100, cost:1977.00 },
-{ code:"AVPGY", lot:26, cost:1249.30 },
-{ code:"KLSER", lot:49, cost:1216.67 },
-{ code:"KONTR", lot:135, cost:7210.35 },
-{ code:"LMKDC", lot:36, cost:582.60 },
-{ code:"ENTRA", lot:85, cost:850.00 },
-{ code:"TATEN", lot:88, cost:495.44 },
-{ code:"ENJSA", lot:5, cost:292.80 },
-{ code:"GIPTA", lot:9, cost:178.11 },
-{ code:"EKOS", lot:72, cost:230.40 },
-{ code:"REEDR", lot:69, cost:427.80 },
-{ code:"HATSN", lot:9, cost:203.40 },
-{ code:"MHRGY", lot:99, cost:281.16 },
-{ code:"MEKAG", lot:64, cost:124.80 },
-{ code:"BORLS", lot:41.49, cost:248.13 }
+  { code:"FZLGY", lot:204.40, cost:461.95 },
+  { code:"KCHOL", lot:40, cost:7550.00 },
+  { code:"TABGD", lot:9, cost:1138.68 },
+  { code:"SKTAS", lot:650.19, cost:1176.85 },
+  { code:"IZENR", lot:212.50, cost:1651.12 },
+  { code:"ASUZU", lot:30, cost:1532.40 },
+  { code:"BASGZ", lot:40, cost:556.40 },
+  { code:"CANTE", lot:1065.96, cost:2121.27 },
+  { code:"AKSEN", lot:25, cost:1007.75 },
+  { code:"PENTA", lot:100, cost:1977.00 },
+  { code:"AVPGY", lot:26, cost:1249.30 },
+  { code:"KLSER", lot:49, cost:1216.67 },
+  { code:"KONTR", lot:135, cost:7210.35 },
+  { code:"LMKDC", lot:36, cost:552.60 },
+  { code:"ENTRA", lot:85, cost:850.00 },
+  { code:"TATEN", lot:88, cost:495.44 },
+  { code:"ENJSA", lot:5, cost:292.80 },
+  { code:"GIPTA", lot:9, cost:178.11 },
+  { code:"EKOS", lot:72, cost:230.40 },
+  { code:"REEDR", lot:69, cost:427.80 },
+  { code:"HATSN", lot:9, cost:203.40 },
+  { code:"MHRGY", lot:99, cost:281.16 },
+  { code:"MEKAG", lot:64, cost:124.80 },
+  { code:"BORLS", lot:41.49, cost:248.13 }
 ];
 
-// ---------------------
-// FORMAT
-// ---------------------
 function formatNumber(num) {
   return num.toLocaleString("tr-TR",{ minimumFractionDigits:2, maximumFractionDigits:2 });
 }
 
-// ---------------------
-// SAAT
-// ---------------------
 function updateClock() {
   const now = new Date();
   document.getElementById("liveClock").innerText =
     "Anlık Saat: " + now.toLocaleTimeString("tr-TR");
 }
 
-// ---------------------
-// YENİ HİSSE EKLE
-// ---------------------
-function addStock(){
-  const code = document.getElementById("newCode").value.toUpperCase().trim();
-  const lot = parseFloat(document.getElementById("newLot").value);
-  const totalValue = parseFloat(document.getElementById("newTotalValue").value);
-  const profitTL = parseFloat(document.getElementById("newProfitTL").value);
-
-  if(!code || !lot || !totalValue || profitTL === null){
-    alert("Tüm alanları doldurun.");
-    return;
-  }
-
-  const cost = totalValue - profitTL; // OTOMATİK MALİYET
-
-  portfolio.push({ code, lot, cost });
-
-  document.getElementById("newCode").value = "";
-  document.getElementById("newLot").value = "";
-  document.getElementById("newTotalValue").value = "";
-  document.getElementById("newProfitTL").value = "";
-
-  updatePortfolio();
-}
-
-// ---------------------
-// API'DEN FİYAT ÇEK
-// ---------------------
 async function fetchPrices(symbols) {
   try {
     const response = await fetch(`https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`);
@@ -227,9 +160,6 @@ async function fetchPrices(symbols) {
   }
 }
 
-// ---------------------
-// PORTFÖY GÜNCELLE
-// ---------------------
 async function updatePortfolio() {
   const tbody = document.getElementById("portfolioBody");
   tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
@@ -242,7 +172,9 @@ async function updatePortfolio() {
     return;
   }
 
-  let data = [];
+  let totalValue = 0;
+  let totalCost = 0;
+  tbody.innerHTML = "";
 
   portfolio.forEach(stock => {
     const stockData = prices[stock.code];
@@ -256,48 +188,30 @@ async function updatePortfolio() {
     const profitPercent = (profitTL / stock.cost) * 100;
     const priceDiffPercent = ((price - referencePrice) / referencePrice) * 100;
 
-    data.push({
-      ...stock,
-      price,
-      referencePrice,
-      priceDiffPercent,
-      value,
-      profitTL,
-      profitPercent
-    });
-  });
-
-  data.sort((a,b) => b.value - a.value);
-
-  let totalValue = 0;
-  let totalCost = 0;
-  tbody.innerHTML = "";
-
-  data.forEach(stock => {
-    totalValue += stock.value;
+    totalValue += value;
     totalCost += stock.cost;
 
     const priceColor =
-      stock.priceDiffPercent > 0 ? "positive" :
-      stock.priceDiffPercent < 0 ? "negative" : "neutral";
+      priceDiffPercent > 0 ? "positive" :
+      priceDiffPercent < 0 ? "negative" : "neutral";
 
     const profitColor =
-      stock.profitTL >= 0 ? "positive" : "negative";
+      profitTL >= 0 ? "positive" : "negative";
 
     tbody.innerHTML += `
       <tr>
         <td>${stock.code}</td>
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
-        <td>${formatNumber(stock.value)}</td>
+        <td>${formatNumber(value)}</td>
         <td class="${priceColor}">
-          ${formatNumber(stock.price)}
+          ${formatNumber(price)}
           <span>
-            (${formatNumber(stock.referencePrice)} ${stock.priceDiffPercent>=0?'+':''}${stock.priceDiffPercent.toFixed(2)}%)
+            (${formatNumber(referencePrice)} ${priceDiffPercent>=0?'+':''}${priceDiffPercent.toFixed(2)}%)
           </span>
         </td>
-        <td class="${profitColor}">${formatNumber(stock.profitTL)}</td>
-        <td class="${profitColor}">${stock.profitPercent.toFixed(2)}%</td>
+        <td class="${profitColor}">${formatNumber(profitTL)}</td>
+        <td class="${profitColor}">${profitPercent.toFixed(2)}%</td>
       </tr>
     `;
   });
@@ -317,69 +231,14 @@ async function updatePortfolio() {
 
   document.getElementById("lastUpdate").innerText =
     "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
-
-  showDailyLog();
 }
 
-// ---------------------
-// GÜN SONU KAYDI
-// ---------------------
-function saveEndOfDay() {
-  const now = new Date();
-  const hour = now.getHours();
-  const minutes = now.getMinutes();
-
-  if(hour === 18 && minutes === 30){
-    const today = now.toLocaleDateString("tr-TR");
-
-    const totalValueText = document.getElementById("totalValue").innerText.replace("Toplam Değer: ","");
-    const totalProfitText = document.getElementById("totalProfit").innerText.replace(/Toplam Kar: /,'');
-
-    const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
-
-    const index = log.findIndex(item => item.date === today);
-    if(index >=0 ){
-      log[index] = { date: today, totalValue: totalValueText, totalProfit: totalProfitText };
-    } else {
-      log.push({ date: today, totalValue: totalValueText, totalProfit: totalProfitText });
-    }
-
-    localStorage.setItem("dailyEndLog", JSON.stringify(log));
-  }
-}
-
-// ---------------------
-// GÜNLÜK LOGU GÖSTER
-// ---------------------
-function showDailyLog() {
-  const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
-  const tbody = document.getElementById("dailyLogTable");
-  tbody.innerHTML = "";
-
-  log.forEach(item => {
-    const profitClass =
-      item.totalProfit.includes('-') ? "daily-negative" :
-      item.totalProfit === "0,00" ? "daily-neutral" :
-      "daily-positive";
-
-    tbody.innerHTML += `<tr>
-      <td>${item.date}</td>
-      <td>${item.totalValue}</td>
-      <td class="${profitClass}">${item.totalProfit}</td>
-    </tr>`;
-  });
-}
-
-// ---------------------
-// BAŞLAT
-// ---------------------
 updateClock();
 setInterval(updateClock,1000);
 
 updatePortfolio();
 setInterval(updatePortfolio,60000);
 
-setInterval(saveEndOfDay,60000);
 </script>
 
 </body>
