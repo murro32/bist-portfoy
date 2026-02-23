@@ -56,26 +56,6 @@ td span {
 .daily-negative { color:#ef4444; font-weight:bold; }
 .daily-neutral { color:white; }
 
-input {
-  padding:8px;
-  margin:5px;
-  border-radius:6px;
-  border:none;
-  width:160px;
-}
-
-button {
-  padding:8px 15px;
-  border:none;
-  border-radius:6px;
-  background:#22c55e;
-  color:white;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-button:hover { opacity:0.8; }
-
 @media screen and (max-width:768px){
   table { min-width:600px; }
   th, td { padding:8px; font-size:12px; }
@@ -91,16 +71,6 @@ button:hover { opacity:0.8; }
   <div class="big" id="totalProfit">Toplam Kar: -</div>
   <div class="timebox" id="liveClock"></div>
   <div class="timebox" id="lastUpdate"></div>
-</div>
-
-<!-- YENİ HİSSE EKLE -->
-<div class="card">
-  <h3>Yeni Hisse Ekle</h3>
-  <input type="text" id="newCode" placeholder="Hisse Kodu">
-  <input type="number" id="newLot" placeholder="Lot" step="0.01">
-  <input type="number" id="newTotalValue" placeholder="Toplam Değer (TL)" step="0.01">
-  <input type="number" id="newProfitTL" placeholder="Kar (TL)" step="0.01">
-  <button onclick="addStock()">Ekle</button>
 </div>
 
 <div class="card">
@@ -148,29 +118,29 @@ const portfolio = [
   { code:"MIATK", lot:100, cost:4564.00 },
   { code:"PETKM", lot:200, cost:3664.00 },
   { code:"JANTS", lot:198.31, cost:7139.20 },
-{ code:"FZLGY", lot:204.40, cost:461.95 },
-{ code:"TABGD", lot:9, cost:1138.68 },
-{ code:"SKTAS", lot:650.19, cost:1176.85 },
-{ code:"IZENR", lot:212.50, cost:1651.12 },
-{ code:"ASUZU", lot:30, cost:1532.40 },
-{ code:"BASGZ", lot:40, cost:556.40 },
-{ code:"CANTE", lot:1065.96, cost:2121.27 },
-{ code:"AKSEN", lot:25, cost:1007.75 },
-{ code:"PENTA", lot:100, cost:1977.00 },
-{ code:"AVPGY", lot:26, cost:1249.30 },
-{ code:"KLSER", lot:49, cost:1216.67 },
-{ code:"KONTR", lot:135, cost:7210.35 },
-{ code:"LMKDC", lot:36, cost:582.60 },
-{ code:"ENTRA", lot:85, cost:850.00 },
-{ code:"TATEN", lot:88, cost:495.44 },
-{ code:"ENJSA", lot:5, cost:292.80 },
-{ code:"GIPTA", lot:9, cost:178.11 },
-{ code:"EKOS", lot:72, cost:230.40 },
-{ code:"REEDR", lot:69, cost:427.80 },
-{ code:"HATSN", lot:9, cost:203.40 },
-{ code:"MHRGY", lot:99, cost:281.16 },
-{ code:"MEKAG", lot:64, cost:124.80 },
-{ code:"BORLS", lot:41.49, cost:248.13 }
+  { code:"FZLGY", lot:204.40, cost:461.95 },
+  { code:"TABGD", lot:9, cost:1138.68 },
+  { code:"SKTAS", lot:650.19, cost:1176.85 },
+  { code:"IZENR", lot:212.50, cost:1651.12 },
+  { code:"ASUZU", lot:30, cost:1532.40 },
+  { code:"BASGZ", lot:40, cost:556.40 },
+  { code:"CANTE", lot:1065.96, cost:2121.27 },
+  { code:"AKSEN", lot:25, cost:1007.75 },
+  { code:"PENTA", lot:100, cost:1977.00 },
+  { code:"AVPGY", lot:26, cost:1249.30 },
+  { code:"KLSER", lot:49, cost:1216.67 },
+  { code:"KONTR", lot:135, cost:7210.35 },
+  { code:"LMKDC", lot:36, cost:582.60 },
+  { code:"ENTRA", lot:85, cost:850.00 },
+  { code:"TATEN", lot:88, cost:495.44 },
+  { code:"ENJSA", lot:5, cost:292.80 },
+  { code:"GIPTA", lot:9, cost:178.11 },
+  { code:"EKOS", lot:72, cost:230.40 },
+  { code:"REEDR", lot:69, cost:427.80 },
+  { code:"HATSN", lot:9, cost:203.40 },
+  { code:"MHRGY", lot:99, cost:281.16 },
+  { code:"MEKAG", lot:64, cost:124.80 },
+  { code:"BORLS", lot:41.49, cost:248.13 }
 ];
 
 // ---------------------
@@ -187,32 +157,6 @@ function updateClock() {
   const now = new Date();
   document.getElementById("liveClock").innerText =
     "Anlık Saat: " + now.toLocaleTimeString("tr-TR");
-}
-
-// ---------------------
-// YENİ HİSSE EKLE
-// ---------------------
-function addStock(){
-  const code = document.getElementById("newCode").value.toUpperCase().trim();
-  const lot = parseFloat(document.getElementById("newLot").value);
-  const totalValue = parseFloat(document.getElementById("newTotalValue").value);
-  const profitTL = parseFloat(document.getElementById("newProfitTL").value);
-
-  if(!code || !lot || !totalValue || profitTL === null){
-    alert("Tüm alanları doldurun.");
-    return;
-  }
-
-  const cost = totalValue - profitTL; // OTOMATİK MALİYET
-
-  portfolio.push({ code, lot, cost });
-
-  document.getElementById("newCode").value = "";
-  document.getElementById("newLot").value = "";
-  document.getElementById("newTotalValue").value = "";
-  document.getElementById("newProfitTL").value = "";
-
-  updatePortfolio();
 }
 
 // ---------------------
