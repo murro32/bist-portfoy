@@ -181,7 +181,7 @@ async function showDailyLogFromSheet() {
   tbody.innerHTML = "<tr><td colspan='3'>Yükleniyor...</td></tr>";
 
   try {
-    const sheetUrl = "https://script.google.com/macros/s/AKfycbxJRGoH6pWWEKoHBn7kU1vLyy5vi73OGJJkBuMJhyazRo2gC8ptPjzUhqO4YRq1BuE8/exec";
+    const sheetUrl = "https://script.google.com/macros/s/AKfycbxLjHUGpIlNbJ6F71LJyaOMpnf1MTDxkIVDLgz3N7h_dB-XCh7S2lfPtmmyIwQhyUy-/exec";
     const response = await fetch(sheetUrl);
     const logData = await response.json();
 
