@@ -91,7 +91,7 @@ td span {
 </div>
 
 <div class="card">
-  <h3>Günlük Kapanış Logu (Google Sheets)</h3>
+  <h3>Günlük Kapanış Logu</h3>
   <table>
     <thead>
       <tr>
@@ -105,6 +105,37 @@ td span {
 </div>
 
 <script>
+async function showDailyLogFromSheet() {
+  const tbody = document.getElementById("dailyLogTable");
+  tbody.innerHTML = "<tr><td colspan='3'>Yükleniyor...</td></tr>";
+
+  try {
+    const sheetUrl = "https://script.google.com/macros/s/AKfycbxJRGoH6pWWEKoHBn7kU1vLyy5vi73OGJJkBuMJhyazRo2gC8ptPjzUhqO4YRq1BuE8/exec";
+    const response = await fetch(sheetUrl);
+    const logData = await response.json();
+
+    tbody.innerHTML = "";
+
+    logData.forEach(item => {
+      const profitClass = Number(item.totalProfit) >= 0 ? "daily-positive" : "daily-negative";
+      let dateStr = new Date(item.date).toLocaleDateString("tr-TR");
+
+      tbody.innerHTML += `<tr>
+        <td>${dateStr}</td>
+        <td>${item.totalValue}</td>
+        <td class="${profitClass}">${item.totalProfit}</td>
+      </tr>`;
+    });
+
+  } catch (e) {
+    tbody.innerHTML = "<tr><td colspan='3'>Log yüklenemedi</td></tr>";
+    console.error(e);
+  }
+}
+
+// Sayfa açılınca çalıştır
+showDailyLogFromSheet();
+</script>
 // ---------------------
 // PORTFÖY
 // ---------------------
