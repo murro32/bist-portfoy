@@ -198,6 +198,13 @@ async function updatePortfolio() {
     const value = price * stock.lot;
     const profitTL = value - stock.cost;
     const profitPercent = (profitTL / stock.cost) * 100;
+
+    // ANLIK FİYAT RENK DÜZELTMESİ
+    const priceColor =
+      Math.abs(price - referencePrice) < 0.0001 ? "neutral" :
+      price > referencePrice ? "positive" :
+      "negative";
+
     const priceDiffPercent = ((price - referencePrice) / referencePrice) * 100;
 
     data.push({
@@ -207,10 +214,12 @@ async function updatePortfolio() {
       priceDiffPercent,
       value,
       profitTL,
-      profitPercent
+      profitPercent,
+      priceColor
     });
   });
 
+  // TOPLAM DEĞERİ EN YÜKSEK OLAN ÜSTTE
   data.sort((a,b) => b.value - a.value);
 
   let totalValue = 0;
@@ -221,12 +230,7 @@ async function updatePortfolio() {
     totalValue += stock.value;
     totalCost += stock.cost;
 
-    const priceColor =
-      stock.priceDiffPercent > 0 ? "positive" :
-      stock.priceDiffPercent < 0 ? "negative" : "neutral";
-
-    const profitColor =
-      stock.profitTL >= 0 ? "positive" : "negative";
+    const profitColor = stock.profitTL >= 0 ? "positive" : "negative";
 
     tbody.innerHTML += `
       <tr>
@@ -234,7 +238,7 @@ async function updatePortfolio() {
         <td>${stock.lot}</td>
         <td>${formatNumber(stock.cost)}</td>
         <td>${formatNumber(stock.value)}</td>
-        <td class="${priceColor}">
+        <td class="${stock.priceColor}">
           ${formatNumber(stock.price)}
           <span>
             (${formatNumber(stock.referencePrice)} ${stock.priceDiffPercent>=0?'+':''}${stock.priceDiffPercent.toFixed(2)}%)
