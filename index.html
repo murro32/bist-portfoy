@@ -91,7 +91,7 @@ td span {
 </div>
 
 <div class="card">
-  <h3>Günlük Kapanış Logu</h3>
+  <h3>Günlük Kapanış Logu (Google Sheets)</h3>
   <table>
     <thead>
       <tr>
@@ -105,7 +105,6 @@ td span {
 </div>
 
 <script>
-
 // ---------------------
 // PORTFÖY
 // ---------------------
@@ -198,14 +197,13 @@ async function updatePortfolio() {
     const value = price * stock.lot;
     const profitTL = value - stock.cost;
     const profitPercent = (profitTL / stock.cost) * 100;
-
-    // ANLIK FİYAT RENK DÜZELTMESİ
-    const priceColor =
-      Math.abs(price - referencePrice) < 0.0001 ? "neutral" :
-      price > referencePrice ? "positive" :
-      "negative";
-
     const priceDiffPercent = ((price - referencePrice) / referencePrice) * 100;
+
+    // Fiyat aynı kalırsa beyaz, yükseldiyse yeşil, düştüyse kırmızı
+    const priceColor =
+      price > referencePrice ? "positive" :
+      price < referencePrice ? "negative" :
+      "neutral";
 
     data.push({
       ...stock,
@@ -219,7 +217,6 @@ async function updatePortfolio() {
     });
   });
 
-  // TOPLAM DEĞERİ EN YÜKSEK OLAN ÜSTTE
   data.sort((a,b) => b.value - a.value);
 
   let totalValue = 0;
@@ -230,7 +227,8 @@ async function updatePortfolio() {
     totalValue += stock.value;
     totalCost += stock.cost;
 
-    const profitColor = stock.profitTL >= 0 ? "positive" : "negative";
+    const profitColor =
+      stock.profitTL >= 0 ? "positive" : "negative";
 
     tbody.innerHTML += `
       <tr>
@@ -266,56 +264,41 @@ async function updatePortfolio() {
   document.getElementById("lastUpdate").innerText =
     "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
 
-  showDailyLog();
+  showDailyLogFromSheet();
 }
 
 // ---------------------
-// GÜN SONU KAYDI
+// GÜNLÜK LOGU SHEETS'TEN ÇEK
 // ---------------------
-function saveEndOfDay() {
-  const now = new Date();
-  const hour = now.getHours();
-  const minutes = now.getMinutes();
-
-  if(hour === 18 && minutes === 30){
-    const today = now.toLocaleDateString("tr-TR");
-
-    const totalValueText = document.getElementById("totalValue").innerText.replace("Toplam Değer: ","");
-    const totalProfitText = document.getElementById("totalProfit").innerText.replace(/Toplam Kar: /,'');
-
-    const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
-
-    const index = log.findIndex(item => item.date === today);
-    if(index >=0 ){
-      log[index] = { date: today, totalValue: totalValueText, totalProfit: totalProfitText };
-    } else {
-      log.push({ date: today, totalValue: totalValueText, totalProfit: totalProfitText });
-    }
-
-    localStorage.setItem("dailyEndLog", JSON.stringify(log));
-  }
-}
-
-// ---------------------
-// GÜNLÜK LOGU GÖSTER
-// ---------------------
-function showDailyLog() {
-  const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
+async function showDailyLogFromSheet() {
   const tbody = document.getElementById("dailyLogTable");
-  tbody.innerHTML = "";
+  tbody.innerHTML = "<tr><td colspan='3'>Yükleniyor...</td></tr>";
 
-  log.forEach(item => {
-    const profitClass =
-      item.totalProfit.includes('-') ? "daily-negative" :
-      item.totalProfit === "0,00" ? "daily-neutral" :
-      "daily-positive";
+  try {
+    // GOOGLE SHEETS PUBLISH LINK veya Apps Script Web App URL
+    const sheetUrl = "https://script.google.com/macros/s/AKfycbyukCELIWciGGeQLgF1I8_9AvZJZsY7n1n_tgB-ZBNxtE-ukTX6r6KTTnHN_yd3mDuwOQ/exec"; 
+    const response = await fetch(sheetUrl);
+    const logData = await response.json();
 
-    tbody.innerHTML += `<tr>
-      <td>${item.date}</td>
-      <td>${item.totalValue}</td>
-      <td class="${profitClass}">${item.totalProfit}</td>
-    </tr>`;
-  });
+    tbody.innerHTML = "";
+
+    logData.forEach(item => {
+      const profitClass =
+        item.totalProfit.includes('-') ? "daily-negative" :
+        item.totalProfit === "0,00" ? "daily-neutral" :
+        "daily-positive";
+
+      tbody.innerHTML += `<tr>
+        <td>${item.date}</td>
+        <td>${item.totalValue}</td>
+        <td class="${profitClass}">${item.totalProfit}</td>
+      </tr>`;
+    });
+
+  } catch (e) {
+    tbody.innerHTML = "<tr><td colspan='3'>Log yüklenemedi</td></tr>";
+    console.error(e);
+  }
 }
 
 // ---------------------
@@ -327,7 +310,6 @@ setInterval(updateClock,1000);
 updatePortfolio();
 setInterval(updatePortfolio,60000);
 
-setInterval(saveEndOfDay,60000);
 </script>
 
 </body>
