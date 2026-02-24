@@ -8,20 +8,54 @@
 body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
 h1 { text-align:center; margin-bottom:20px; }
 
-.card { background:#1e293b; padding:15px; border-radius:10px; margin-bottom:20px; overflow-x:auto; box-shadow:0 4px 10px rgba(0,0,0,0.3);}
-table { width:100%; border-collapse:collapse; min-width:700px; table-layout:fixed;}
-th, td { padding:10px; text-align:center; border-bottom:1px solid #334155; font-size:13px; white-space:nowrap;}
-thead th { position:sticky; top:0; background:#334155; z-index:1;}
+.card {
+  background:#1e293b;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:20px;
+  overflow-x:auto;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+table {
+  width:100%;
+  border-collapse: collapse;
+  min-width:700px;
+  table-layout: fixed;
+}
+
+th, td {
+  padding:10px;
+  text-align:center;
+  border-bottom:1px solid #334155;
+  font-size:13px;
+  white-space:nowrap;
+}
+
+thead th { position: sticky; top:0; background:#334155; z-index:1; }
+
 tr:nth-child(even){ background:#1e293b; }
 tr:hover { background:#334155; transition:0.2s; }
+
 .positive { color:#22c55e; font-weight:bold; }
 .negative { color:#ef4444; font-weight:bold; }
 .neutral { color:white; }
+
 .big { font-size:22px; font-weight:bold; }
+
 .timebox { text-align:right; font-size:12px; opacity:0.8; margin-top:5px; }
+
+td span {
+  font-size:10px;
+  color:#94a3b8;
+  display:inline;
+  margin-left:4px;
+}
+
 .daily-positive { color:#22c55e; font-weight:bold; }
 .daily-negative { color:#ef4444; font-weight:bold; }
 .daily-neutral { color:white; }
+
 @media screen and (max-width:768px){
   table { min-width:600px; }
   th, td { padding:8px; font-size:12px; }
@@ -57,31 +91,59 @@ tr:hover { background:#334155; transition:0.2s; }
 </div>
 
 <div class="card">
-<h3>Günlük Kapanış Logu</h3>
-<table>
-<thead>
-<tr>
-<th>Tarih</th>
-<th>Toplam Değer</th>
-<th>Toplam Kar/Zarar</th>
-</tr>
-</thead>
-<tbody id="dailyLogTable"></tbody>
-</table>
+  <h3>Günlük Kapanış Logu (Google Sheets)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Tarih</th>
+        <th>Toplam Değer</th>
+        <th>Toplam Kar/Zarar</th>
+      </tr>
+    </thead>
+    <tbody id="dailyLogTable"></tbody>
+  </table>
 </div>
 
 <script>
 // ---------------------
-// PORTFÖY
+// PORTFÖY VERİLERİ
 // ---------------------
 const portfolio = [
   { code:"THYAO", lot:50, cost:11930.00 },
   { code:"TUPRS", lot:70, cost:8649.90 },
-  { code:"ASELS", lot:50, cost:3180.50 }
+  { code:"ASELS", lot:50, cost:3180.50 },
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+  { code:"ALARK", lot:50, cost:6178.50 },
+  { code:"MIATK", lot:100, cost:4564.00 },
+  { code:"PETKM", lot:200, cost:3664.00 },
+  { code:"JANTS", lot:198.31, cost:7139.20 },
+  { code:"FZLGY", lot:204.40, cost:461.95 },
+  { code:"TABGD", lot:9, cost:1138.68 },
+  { code:"SKTAS", lot:650.19, cost:1176.85 },
+  { code:"IZENR", lot:212.50, cost:1651.12 },
+  { code:"ASUZU", lot:30, cost:1532.40 },
+  { code:"BASGZ", lot:40, cost:556.40 },
+  { code:"CANTE", lot:1065.96, cost:2121.27 },
+  { code:"AKSEN", lot:25, cost:1007.75 },
+  { code:"PENTA", lot:100, cost:1977.00 },
+  { code:"AVPGY", lot:26, cost:1249.30 },
+  { code:"KLSER", lot:49, cost:1216.67 },
+  { code:"KONTR", lot:135, cost:7210.35 },
+  { code:"LMKDC", lot:36, cost:582.60 },
+  { code:"ENTRA", lot:85, cost:850.00 },
+  { code:"TATEN", lot:88, cost:495.44 },
+  { code:"ENJSA", lot:5, cost:292.80 },
+  { code:"GIPTA", lot:9, cost:178.11 },
+  { code:"EKOS", lot:72, cost:230.40 },
+  { code:"REEDR", lot:69, cost:427.80 },
+  { code:"HATSN", lot:9, cost:203.40 },
+  { code:"MHRGY", lot:99, cost:281.16 },
+  { code:"MEKAG", lot:64, cost:124.80 },
+  { code:"BORLS", lot:41.49, cost:248.13 }
 ];
 
 // ---------------------
-// FORMAT
+// FORMAT FONKSİYONU
 // ---------------------
 function formatNumber(num) {
   return num.toLocaleString("tr-TR",{ minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -97,125 +159,77 @@ function updateClock() {
 }
 
 // ---------------------
-// API'DEN FİYAT ÇEK
-// ---------------------
-async function fetchPrices(symbols) {
-  try {
-    const response = await fetch(`https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`);
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
-
-// ---------------------
-// PORTFÖY GÜNCELLE VE SHEET'E KAYDET
+// PORTFÖY GÜNCELLEME
 // ---------------------
 async function updatePortfolio() {
   const tbody = document.getElementById("portfolioBody");
   tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
 
-  const symbols = portfolio.map(s => s.code).join(",");
-  const prices = await fetchPrices(symbols);
-
-  if(!prices){
-    tbody.innerHTML = "<tr><td colspan='7'>API Hatası</td></tr>";
-    return;
-  }
-
   let totalValue = 0;
   let totalCost = 0;
 
   tbody.innerHTML = "";
-
   portfolio.forEach(stock => {
-    const stockData = prices[stock.code];
-    if(!stockData) return;
-
-    const price = stockData.price;
-    const value = price * stock.lot;
+    const value = stock.lot * stock.cost;
     const profitTL = value - stock.cost;
-    const profitPercent = (profitTL / stock.cost) * 100;
+    const profitPercent = (profitTL / stock.cost)*100;
 
     totalValue += value;
     totalCost += stock.cost;
 
-    const profitColor = profitTL >= 0 ? "positive" : "negative";
+    const profitColor = profitTL >=0 ? "positive":"negative";
 
-    tbody.innerHTML += `<tr>
-      <td>${stock.code}</td>
-      <td>${stock.lot}</td>
-      <td>${formatNumber(stock.cost)}</td>
-      <td>${formatNumber(value)}</td>
-      <td class="${profitColor}">${formatNumber(price)}</td>
-      <td class="${profitColor}">${formatNumber(profitTL)}</td>
-      <td class="${profitColor}">${profitPercent.toFixed(2)}%</td>
-    </tr>`;
+    tbody.innerHTML += `
+      <tr>
+        <td>${stock.code}</td>
+        <td>${stock.lot}</td>
+        <td>${formatNumber(stock.cost)}</td>
+        <td>${formatNumber(value)}</td>
+        <td>-</td>
+        <td class="${profitColor}">${formatNumber(profitTL)}</td>
+        <td class="${profitColor}">${profitPercent.toFixed(2)}%</td>
+      </tr>
+    `;
   });
 
-  const totalProfitTL = totalValue - totalCost;
+  const totalProfit = totalValue - totalCost;
 
-  document.getElementById("totalValue").innerText =
-    "Toplam Değer: " + formatNumber(totalValue);
-
-  document.getElementById("totalProfit").innerHTML =
-    "Toplam Kar: <span class='" +
-    (totalProfitTL>=0?"positive":"negative") +
-    "'>" + formatNumber(totalProfitTL) + "</span>";
+  document.getElementById("totalValue").innerText = "Toplam Değer: " + formatNumber(totalValue);
+  document.getElementById("totalProfit").innerText = "Toplam Kar: " + formatNumber(totalProfit);
 
   document.getElementById("lastUpdate").innerText =
     "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
 
-  // Sheet'e POST ile gönder
-  sendToSheet(totalValue, totalProfitTL);
-
-  // Günlük logu da göster
   showDailyLogFromSheet();
 }
 
 // ---------------------
-// SHEET'TEN LOG ÇEK
+// GÜNLÜK LOGU WEB APP'TEN ÇEK
 // ---------------------
 async function showDailyLogFromSheet() {
   const tbody = document.getElementById("dailyLogTable");
   tbody.innerHTML = "<tr><td colspan='3'>Yükleniyor...</td></tr>";
 
   try {
-    const sheetUrl = "https://script.google.com/macros/s/AKfycbxLjHUGpIlNbJ6F71LJyaOMpnf1MTDxkIVDLgz3N7h_dB-XCh7S2lfPtmmyIwQhyUy-/exec";
+    const sheetUrl = "https://script.google.com/macros/s/AKfycbxgqbjRiqmI0yQqzuO5IfvqJ3_UGXSbUwYbECrQI1RUL10ksjj_PYBt-MFt9m-yDXgQ/exec";
     const response = await fetch(sheetUrl);
     const logData = await response.json();
 
     tbody.innerHTML = "";
-
     logData.forEach(item => {
-      const profitClass = Number(item.totalProfit) >= 0 ? "daily-positive" : "daily-negative";
-      let dateStr = new Date(item.date).toLocaleDateString("tr-TR");
+      const profitClass = Number(item.totalProfit) >= 0 ? "daily-positive":"daily-negative";
+      const dateStr = new Date(item.date).toLocaleDateString("tr-TR");
+
       tbody.innerHTML += `<tr>
         <td>${dateStr}</td>
-        <td>${item.totalValue}</td>
-        <td class="${profitClass}">${item.totalProfit}</td>
+        <td>${formatNumber(item.totalValue)}</td>
+        <td class="${profitClass}">${formatNumber(item.totalProfit)}</td>
       </tr>`;
     });
 
-  } catch (e) {
+  } catch(e) {
     tbody.innerHTML = "<tr><td colspan='3'>Log yüklenemedi</td></tr>";
     console.error(e);
-  }
-}
-
-// ---------------------
-// SHEET'E POST GÖNDER
-// ---------------------
-async function sendToSheet(totalValue, totalProfit) {
-  try {
-    const sheetUrl = "https://script.google.com/macros/s/AKfycbxJRGoH6pWWEKoHBn7kU1vLyy5vi73OGJJkBuMJhyazRo2gC8ptPjzUhqO4YRq1BuE8/exec";
-    await fetch(sheetUrl, {
-      method: "POST",
-      body: JSON.stringify({ totalValue, totalProfit }),
-      headers: { "Content-Type": "application/json" }
-    });
-  } catch(e) {
-    console.error("Sheet'e gönderilemedi", e);
   }
 }
 
@@ -225,8 +239,8 @@ async function sendToSheet(totalValue, totalProfit) {
 updateClock();
 setInterval(updateClock,1000);
 updatePortfolio();
-setInterval(updatePortfolio,60000); // 1 dakikada bir güncelle
-</script>
+setInterval(updatePortfolio,60000);
 
+</script>
 </body>
 </html>
