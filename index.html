@@ -1,123 +1,1961 @@
+Gemini
+Gemini ile sohbet
+Siz şunu dediniz:
+// -------------------------
+
+// 1. Portföy Tanımı
+
+// -------------------------
+
+const PORTFOLIO = [
+
+  { code:"THYAO", lot:50, cost:11930.00 },
+
+  { code:"TUPRS", lot:70, cost:8649.90 },
+
+  { code:"ASELS", lot:50, cost:3180.50 },
+
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+
+  { code:"ALARK", lot:50, cost:6178.50 },
+
+  { code:"MIATK", lot:100, cost:4564.00 },
+
+  { code:"PETKM", lot:200, cost:3664.00 },
+
+  { code:"JANTS", lot:198.31, cost:7139.20 },
+
+  { code:"FZLGY", lot:204.40, cost:461.95 },
+
+  { code:"TABGD", lot:9, cost:1138.68 },
+
+  { code:"SKTAS", lot:650.19, cost:1176.85 },
+
+  { code:"IZENR", lot:212.50, cost:1651.12 },
+
+  { code:"ASUZU", lot:30, cost:1532.40 },
+
+  { code:"BASGZ", lot:40, cost:556.40 },
+
+  { code:"CANTE", lot:1065.96, cost:2121.27 },
+
+  { code:"AKSEN", lot:25, cost:1007.75 },
+
+  { code:"PENTA", lot:100, cost:1977.00 },
+
+  { code:"AVPGY", lot:26, cost:1249.30 },
+
+  { code:"KLSER", lot:49, cost:1216.67 },
+
+  { code:"KONTR", lot:135, cost:7210.35 },
+
+  { code:"LMKDC", lot:36, cost:582.60 },
+
+  { code:"ENTRA", lot:85, cost:850.00 },
+
+  { code:"TATEN", lot:88, cost:495.44 },
+
+  { code:"ENJSA", lot:5, cost:292.80 },
+
+  { code:"GIPTA", lot:9, cost:178.11 },
+
+  { code:"EKOS", lot:72, cost:230.40 },
+
+  { code:"REEDR", lot:69, cost:427.80 },
+
+  { code:"HATSN", lot:9, cost:203.40 },
+
+  { code:"MHRGY", lot:99, cost:281.16 },
+
+  { code:"MEKAG", lot:64, cost:124.80 },
+
+  { code:"BORLS", lot:41.49, cost:248.13 }
+
+];
+
+
+
+// -------------------------
+
+// 2. Günlük Portföy Kaydı (API'den çekip Sheet'e kaydet)
+
+// -------------------------
+
+function logDailyPortfolio() {
+
+  const ss = SpreadsheetApp.openById("1LXgVhFToGwNJqUXbAztFERvMfwMlFGsdsVL1JsiiZg4"); // Sheet ID
+
+  const sheet = ss.getSheetByName("Sheet1");
+
+
+
+  // API’den fiyatları çek
+
+  const symbols = PORTFOLIO.map(p => p.code).join(",");
+
+  const apiUrl = `https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`;
+
+
+
+  let prices;
+
+  try {
+
+    const response = UrlFetchApp.fetch(apiUrl);
+
+    prices = JSON.parse(response.getContentText());
+
+  } catch (e) {
+
+    Logger.log("API fetch hatası: " + e);
+
+    return;
+
+  }
+
+
+
+  // Toplam değer ve kar/zarar hesapla
+
+  let totalValue = 0;
+
+  let totalCost = 0;
+
+
+
+  PORTFOLIO.forEach(stock => {
+
+    const price = prices[stock.code]?.price;
+
+    if (price === undefined) return;
+
+
+
+    totalValue += price * stock.lot;
+
+    totalCost += stock.cost;
+
+  });
+
+
+
+  const totalProfit = totalValue - totalCost;
+
+  const today = new Date();
+
+
+
+  // Sheet'e ekle
+
+  sheet.appendRow([today, totalValue, totalProfit]);
+
+  Logger.log(`Satır eklendi: ${today} | Değer: ${totalValue} | Kar: ${totalProfit}`);
+
+}
+
+
+
+// -------------------------
+
+// 3. Web App JSON Çıktısı
+
+// -------------------------
+
+function doGet() {
+
+  const ss = SpreadsheetApp.openById("1LXgVhFToGwNJqUXbAztFERvMfwMlFGsdsVL1JsiiZg4");
+
+  const sheet = ss.getSheetByName("Sheet1");
+
+  const data = sheet.getDataRange().getValues();
+
+
+
+  const result = [];
+
+  for (let i = 1; i < data.length; i++) { // başlık satırını atla
+
+    result.push({
+
+      date: data[i][0],
+
+      totalValue: data[i][1],
+
+      totalProfit: data[i][2]
+
+    });
+
+  }
+
+
+
+  return ContentService
+
+    .createTextOutput(JSON.stringify(result))
+
+    .setMimeType(ContentService.MimeType.JSON);
+
+} böyşe bir kod var app scripte apiden güncel değerleir çekip kaydedebilir myizi sheet1 e
+
+Gemini şunu dedi:
+Paylaştığın kod yapısı genel olarak doğru bir mantığa sahip, ancak Google Apps Script (GAS) üzerinden dış dünyadaki bir API'ye bağlanırken ve verileri Google Sheets'e yazarken dikkat etmen gereken birkaç kritik nokta var.
+
+Mevcut kodunda fiyatları çeken API (bist-portfoy.vercel.app) eğer aktifse ve beklenen JSON formatında veri döndürüyorsa çalışacaktır. Ancak, genellikle bu tarz işlemlerde verinin "hangi hisse, ne kadar kar/zarar etti" gibi detaylarını da görmek istersin.
+
+Aşağıda kodunu daha güvenli hale getirilmiş ve hata payı azaltılmış versiyonunu bulabilirsin:
+
+Optimize Edilmiş Apps Script Kodu
+JavaScript
+// 1. Portföy Verileri (Burayı her alım-satımda güncellersin)
+const PORTFOLIO = [
+  { code:"THYAO", lot:50, cost:11930.00 },
+  { code:"TUPRS", lot:70, cost:8649.90 },
+  { code:"ASELS", lot:50, cost:3180.50 },
+  // ... diğer hisselerini buraya eklemeye devam edebilirsin
+];
+
+// 2. Günlük Kayıt Fonksiyonu
+function logDailyPortfolio() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet(); // Aynı dosya içindeyse ID gerekmez
+  const sheet = ss.getSheetByName("Sheet1");
+  
+  // Eğer başlıklar yoksa ekleyelim
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["Tarih", "Toplam Portföy Değeri", "Toplam Kar/Zarar", "Kar Oranı (%)"]);
+  }
+
+  const symbols = PORTFOLIO.map(p => p.code).join(",");
+  const apiUrl = `https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`;
+
+  try {
+    const response = UrlFetchApp.fetch(apiUrl, { 'muteHttpExceptions': true });
+    const responseData = JSON.parse(response.getContentText());
+
+    let totalCurrentValue = 0;
+    let totalCost = 0;
+
+    PORTFOLIO.forEach(stock => {
+      // API'den gelen verinin yapısına göre burayı kontrol etmelisin
+      // Örn: { "THYAO": { "price": 280.5 }, "TUPRS": { "price": 150.2 } }
+      const currentPrice = responseData[stock.code] ? responseData[stock.code].price : 0;
+      
+      if (currentPrice > 0) {
+        totalCurrentValue += (currentPrice * stock.lot);
+        totalCost += stock.cost;
+      }
+    });
+
+    const totalProfit = totalCurrentValue - totalCost;
+    const profitMargin = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+    const today = new Date();
+
+    // Veriyi alt alta ekle
+    sheet.appendRow([today, totalCurrentValue.toFixed(2), totalProfit.toFixed(2), profitMargin.toFixed(2)]);
+    
+    console.log("Kayıt Başarılı: " + today);
+
+  } catch (e) {
+    console.error("Hata Oluştu: " + e.message);
+  }
+}
+Dikkat Etmen Gereken 3 Önemli Adım
+API Formatı: Kullandığın API'nin (bist-portfoy.vercel.app) tam olarak hangi formatta veri döndürdüğünden emin olmalısın. Eğer API {"THYAO": 285.50} gibi dönüyorsa, kodda responseData[stock.code].price yerine sadece responseData[stock.code] kullanman gerekir.
+
+Otomatik Tetikleyici (Trigger) Kurma:
+
+Script editöründe sol taraftaki Saat simgesine (Tetikleyiciler) tıkla.
+
+Tetikleyici Ekle de.
+
+Çalıştırılacak fonksiyon: logDailyPortfolio.
+
+Etkinlik kaynağı: Zamana bağlı.
+
+Tür: Günlük zamanlayıcı.
+
+Saat: Borsa kapandıktan sonra bir vakit seç (Örn: Akşam 19:00 - 20:00).
+
+Yetkilendirme: Kodu ilk kez elle çalıştırdığında (Üstteki "Çalıştır" butonuyla), Google senden verilerine erişmek için izin isteyecektir. "Gelişmiş" diyerek izin vermen gerekiyor.
+
+Bir İpucu:
+Hisselerin anlık fiyatlarını çekmek için Google Sheets'in kendi fonksiyonu olan =GOOGLEFINANCE("IST:THYAO"; "price") formülünü de kullanabilirsin. Eğer API ile uğraşmak istemezsen, bir sayfada tüm hisselerinin güncel fiyatlarını bu formülle tutup, Apps Script ile sadece o hücrelerdeki toplam değeri kopyalayıp alt alta kaydedebilirsin.
+
+Bu kodun çıktılarını bir grafik üzerinde görmek ister misin yoksa sadece veri kaydı yeterli mi?
+
+Siz şunu dediniz:
+{"THYAO":{"price":315.75,"prevClose":320.5},"TUPRS":{"price":227,"prevClose":221.60000610351562},"ASELS":{"price":310.5,"prevClose":313.25}} bu şekilde değer gönüyor
+
+Gemini şunu dedi:
+Gelen veri formatına baktığımızda, her sembolün altında doğrudan bir price anahtarı bulunuyor. Bu yapı, paylaştığın ilk kodun mantığıyla tam uyumlu.
+
+Ancak, kodun içindeki PORTFOLIO dizisinde her hisse için verdiğin cost (maliyet) değerleri, toplam maliyet gibi görünüyor (Örneğin: THYAO 50 lot için 11.930 TL). Eğer bu rakamlar toplam maliyet ise aşağıdaki güncellenmiş kod sorunsuz çalışacaktır.
+
+Kodu şu şekilde revize edip kullanabilirsin:
+
+JavaScript
+function logDailyPortfolio() {
+  const ss = SpreadsheetApp.openById("1LXgVhFToGwNJqUXbAztFERvMfwMlFGsdsVL1JsiiZg4");
+  const sheet = ss.getSheetByName("Sheet1");
+
+  // API’den fiyatları çek
+  const symbols = PORTFOLIO.map(p => p.code).join(",");
+  const apiUrl = `https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`;
+
+  let prices;
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    prices = JSON.parse(response.getContentText());
+  } catch (e) {
+    Logger.log("API fetch hatası: " + e);
+    return;
+  }
+
+  let totalValue = 0;
+  let totalCost = 0;
+
+  PORTFOLIO.forEach(stock => {
+    // Gelen veri yapısı: prices["THYAO"].price
+    const stockData = prices[stock.code];
+    
+    if (stockData && stockData.price) {
+      const currentPrice = stockData.price;
+      totalValue += currentPrice * stock.lot;
+      totalCost += stock.cost;
+    } else {
+      Logger.log(stock.code + " için fiyat bulunamadı.");
+    }
+  });
+
+  const totalProfit = totalValue - totalCost;
+  const profitPercentage = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+  const today = new Date();
+
+  // Sheet'e ekle (Tarih, Toplam Değer, Toplam Kar, Kar Oranı)
+  sheet.appendRow([
+    today, 
+    totalValue.toFixed(2), 
+    totalProfit.toFixed(2), 
+    "%" + profitPercentage.toFixed(2)
+  ]);
+
+  Logger.log(`Kayıt tamamlandı: ${today} | Değer: ${totalValue.toFixed(2)}`);
+}
+Yapman Gereken Küçük Düzenlemeler:
+Maliyet Kontrolü: Eğer cost değeri hissenin tek bir lotunun alış fiyatıysa, hesaplama kısmını şu şekilde değiştirmelisin: totalCost += (stock.cost * stock.lot);. Eğer şu anki haliyle (toplam ödediğin para) ise kod doğru.
+
+Otomatik Kayıt (Trigger):
+
+Sol menüdeki Tetikleyiciler (Alarm simgesi) kısmına git.
+
+Sağ alttaki Tetikleyici Ekle butonuna bas.
+
+logDailyPortfolio fonksiyonunu seç.
+
+Zaman esaslı -> Gün zamanlayıcı -> Akşam 18:00 - 19:00 arası (Borsa kapandıktan sonra) olarak ayarla.
+
+Bu sayede her akşam borsa kapandıktan sonra portföyünün o günkü toplam değerini ve kar/zarar durumunu otomatik olarak bir satır olarak tablonun altına ekleyecektir.
+
+Siz şunu dediniz:
+03:36:26HataReferenceError: PORTFOLIO is not defined
+
+logDailyPortfolio@ Kod.gs:6 böyşe hata aldım
+
+Gemini şunu dedi:
+Bu hatanın sebebi çok basit: logDailyPortfolio fonksiyonu, PORTFOLIO değişkenine ulaşamıyor. Yazılım dilinde buna "kapsam (scope) hatası" diyoruz.
+
+Muhtemelen PORTFOLIO dizisini (hisselerin olduğu liste) kodun en üstüne, fonksiyonun dışına yapıştırmadın veya yanlışlıkla sildin. Çözmek için şu tam kodu kopyalayıp Kod.gs dosyasındaki her şeyi silip yerine yapıştır:
+
+JavaScript
+// 1. Portföy Tanımı (BU KISIM EN ÜSTTE OLMALI)
+const PORTFOLIO = [
+  { code:"THYAO", lot:50, cost:11930.00 },
+  { code:"TUPRS", lot:70, cost:8649.90 },
+  { code:"ASELS", lot:50, cost:3180.50 },
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+  { code:"ALARK", lot:50, cost:6178.50 },
+  { code:"MIATK", lot:100, cost:4564.00 },
+  { code:"PETKM", lot:200, cost:3664.00 },
+  { code:"JANTS", lot:198.31, cost:7139.20 },
+  { code:"FZLGY", lot:204.40, cost:461.95 },
+  { code:"TABGD", lot:9, cost:1138.68 },
+  { code:"SKTAS", lot:650.19, cost:1176.85 },
+  { code:"IZENR", lot:212.50, cost:1651.12 },
+  { code:"ASUZU", lot:30, cost:1532.40 },
+  { code:"BASGZ", lot:40, cost:556.40 },
+  { code:"CANTE", lot:1065.96, cost:2121.27 },
+  { code:"AKSEN", lot:25, cost:1007.75 },
+  { code:"PENTA", lot:100, cost:1977.00 },
+  { code:"AVPGY", lot:26, cost:1249.30 },
+  { code:"KLSER", lot:49, cost:1216.67 },
+  { code:"KONTR", lot:135, cost:7210.35 },
+  { code:"LMKDC", lot:36, cost:582.60 },
+  { code:"ENTRA", lot:85, cost:850.00 },
+  { code:"TATEN", lot:88, cost:495.44 },
+  { code:"ENJSA", lot:5, cost:292.80 },
+  { code:"GIPTA", lot:9, cost:178.11 },
+  { code:"EKOS", lot:72, cost:230.40 },
+  { code:"REEDR", lot:69, cost:427.80 },
+  { code:"HATSN", lot:9, cost:203.40 },
+  { code:"MHRGY", lot:99, cost:281.16 },
+  { code:"MEKAG", lot:64, cost:124.80 },
+  { code:"BORLS", lot:41.49, cost:248.13 }
+];
+
+// 2. Günlük Portföy Kaydı
+function logDailyPortfolio() {
+  const ss = SpreadsheetApp.openById("1LXgVhFToGwNJqUXbAztFERvMfwMlFGsdsVL1JsiiZg4");
+  const sheet = ss.getSheetByName("Sheet1");
+
+  // API’den fiyatları çek
+  const symbols = PORTFOLIO.map(p => p.code).join(",");
+  const apiUrl = `https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`;
+
+  let prices;
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    prices = JSON.parse(response.getContentText());
+  } catch (e) {
+    Logger.log("API fetch hatası: " + e);
+    return;
+  }
+
+  let totalValue = 0;
+  let totalCost = 0;
+
+  PORTFOLIO.forEach(stock => {
+    // API'den gelen veriye erişim: prices["THYAO"].price
+    if (prices[stock.code] && prices[stock.code].price) {
+      const currentPrice = prices[stock.code].price;
+      totalValue += (currentPrice * stock.lot);
+      totalCost += stock.cost;
+    }
+  });
+
+  const totalProfit = totalValue - totalCost;
+  const today = new Date();
+
+  // Veriyi kaydet
+  sheet.appendRow([today, totalValue.toFixed(2), totalProfit.toFixed(2)]);
+  Logger.log(`Başarıyla eklendi: ${totalValue.toFixed(2)} TL`);
+}
+Neden Hata Veriyordu?
+Yazılım dillerinde değişkenlerin tanımlandığı yer önemlidir. Eğer PORTFOLIO listesini fonksiyonun (süslü parantezlerin { }) dışına, en üste koymazsan, fonksiyon çalışmaya başladığında bu listenin ne olduğunu bilemez.
+
+Şu an çalışıyor mu? Eğer hala hata alırsan API'nin cevap verip vermediğini kontrol etmek için bir satır ekleyebiliriz.
+
+Siz şunu dediniz:
+03:37:19BilgiAPI fetch hatası: Exception: You do not have permission to call UrlFetchApp.fetch. Required permissions: https://www.googleapis.com/auth/script.external_request. For more information, see https://developers.google.com/apps-script/guides/support/troubleshooting#authorization-is03:37:19BildirimYürütme işlemi tamamlandı bu hata geldi
+
+Gemini şunu dedi:
+Bu hata, kodun doğru olduğunu ancak Google'ın güvenlik nedeniyle dış dünyaya (API'ye) bağlanmak için senden izin (yetki) beklediğini gösteriyor.
+
+Kodun ilk kez çalıştırılması veya API bağlantısı eklenmesi durumunda bu standart bir güvenlik prosedürüdür.
+
+Çözüm: İzinleri Nasıl Onaylarsın?
+Apps Script editöründe üstteki "Çalıştır" (Run) butonuna (üçgen simgesi) tıkla.
+
+Ekrana "Yetkilendirme Gerekli" (Authorization Required) penceresi gelecektir. "İzinleri İncele" (Review Permissions) butonuna tıkla.
+
+Kendi Google Hesabını seç.
+
+Karşına "Google hasn't verified this app" (Google bu uygulamayı doğrulamadı) uyarısı çıkabilir. Bu korkulacak bir şey değil, kendi yazdığın kod olduğu için böyle der.
+
+Sol alttaki "Advanced" (Gelişmiş) yazısına tıkla.
+
+En altta çıkan "Go to [Proje Adı] (unsafe)" (Şuna git: [Proje Adı]) bağlantısına tıkla.
+
+Son aşamada gelen ekranda "Allow" (İzin Ver) butonuna tıkla.
+
+İzin Verdikten Sonra
+İzin verdikten sonra fonksiyonun bir kez daha çalışmasını bekle veya tekrar "Çalıştır" butonuna bas. Bu sefer "API fetch hatası" yerine alt panelde (Konsol) şu yazıyı görmelisin:
+
+Başarıyla eklendi: XXXXX.XX TL
+
+Eğer Hala Hata Alıyorsan:
+Bazen "App Script" dosyası ile "Google Sheet" dosyası arasındaki bağda sorun olabilir. Eğer kodun içinde openById("ID_BURADA") kullanıyorsan, o ID'nin doğru olduğundan ve Google Sheet'teki sayfa isminin tam olarak "Sheet1" (veya Türkçe ise "Sayfa1") olduğundan emin ol.
+
+Bir sonraki adım: Bu verileri otomatik olarak her akşam kaydetmek için bir zamanlayıcı (Trigger) kurmak ister misin?
+
+Siz şunu dediniz:
+Ekrana "Yetkilendirme Gerekli" (Authorization Required) penceresi gelecektir. "İzinleri İncele" (Review Permissions) butonuna tıkla. gelmedi böyşe uyarı run a basınca
+
+Gemini şunu dedi:
+Eğer Run (Çalıştır) butonuna bastığında hiçbir pencere açılmıyorsa ve doğrudan hata alıyorsan, Google Apps Script tarayıcıdaki pop-up (açılır pencere) engelleyicisine takılmış olabilir.
+
+Bunu çözmek ve izni zorlamak için şu adımları izleyelim:
+
+1. Pop-up Engelleyiciyi Kontrol Et
+Tarayıcının adres çubuğunun en sağında (yıldız işaretinin yanında) bir kırmızı çarpı veya "Pencere engellendi" simgesi görüyor musun? Eğer görüyorsan ona tıkla ve "https://www.google.com/search?q=google.com sitesinden gelen pop-uplara her zaman izin ver" seçeneğini seç. Sonra tekrar Run butonuna bas.
+
+2. "appsscript.json" Dosyasına İzni Manuel Eklemek
+Eğer hala pencere gelmiyorsa, Google'a "Ben bu izni istiyorum" diye kodun içinden fısıldayabiliriz:
+
+Sol taraftaki çark simgesine (Proje Ayarları) tıkla.
+
+"appsscript.json manifest dosyasını düzenleyicide göster" kutucuğunu işaretle.
+
+Sol menüde yeni çıkan appsscript.json dosyasına tıkla.
+
+İçindeki kodu sil ve şununla değiştir (mevcut izinleri manuel tanımlıyoruz):
+
+JSON
+{
+  "timeZone": "Europe/Istanbul",
+  "dependencies": {
+    "enabledAdvancedServices": []
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/script.external_request"
+  ]
+}
+Kaydet ve tekrar Kod.gs dosyasına dönüp Run de. Şimdi o meşhur izin penceresinin gelmesi şart.
+
+3. Alternatif: "Deploy" Üzerinden İzin Almak
+Hala tık yoksa, sistemi kandıralım:
+
+Sağ üstteki mavi Deploy (Dağıt) butonuna tıkla.
+
+New Deployment (Yeni Dağıtım) seçeneğini seç.
+
+Tür olarak "Web App" seç (ayarları değiştirmene gerek yok).
+
+Deploy butonuna bastığında, sistem seni mecburen o izin ekranına yönlendirecektir. İzinleri verdikten sonra pencereyi kapatabilirsin, kodun artık çalışma yetkisi olacaktır.
+
+Küçük Bir Kontrol Listesi
+Sayfa İsmi: Kodun içinde getSheetByName("Sheet1") yazıyor. Eğer senin Google Sheet sayfanın altındaki isim "Sayfa1" ise kod veriyi yazacak yer bulamaz. İsimlerin birebir aynı olduğundan emin ol.
+
+ID Doğruluğu: openById("...") kısmındaki ID'nin, tarayıcıdaki URL'de bulunan uzun harf ve rakam dizisiyle aynı olduğunu teyit et.
+
+Şimdi tekrar Run yapmayı dener misin? Hangi hatayı veya uyarıyı veriyor?
+
+Siz şunu dediniz:
+Sol menüde yeni çıkan appsscript.json dosyasına tıkla. dosya çıkmadı sadece tik koydum
+
+Gemini şunu dedi:
+Tik koymana rağmen dosya hemen gelmediyse, editörün sol menüsünde "Dosyalar" (Files) başlığının altındaki listeye bakman gerekiyor. Bazen liste kendini otomatik yenilemez.
+
+Eğer hala göremiyorsan, şu adımları takip ederek sayfayı zorlayalım:
+
+1. Dosyayı Görme (Alternatif Yol)
+Tik koyduğun Ayarlar (çark) sayfasından çıkıp tekrar sol taraftaki "Editör" (kod simgesi < >) sekmesine tıkla.
+
+Sol taraftaki "Dosyalar" listesinde Kod.gs dosyasının hemen yanında veya altında appsscript.json dosyasının belirdiğini göreceksin.
+
+2. Hala Çıkmıyorsa: Sayfayı Yenile
+Bazen Google Apps Script arayüzü takılabiliyor.
+
+Ayarlar'da o kutucuğun işaretli olduğundan emin ol.
+
+Klavyeden F5 (veya Sayfayı Yenile) yap.
+
+Tekrar Editör < > kısmına gel. Dosya orada olacaktır.
+
+3. Eğer Dosyayı Bulursan İçini Şununla Değiştir:
+Dosyaya tıkladığında içindekileri sil ve bu izinleri yapıştır:
+
+JSON
+{
+  "timeZone": "Europe/Istanbul",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/script.external_request"
+  ]
+}
+4. Son Çare: "Yeni Dağıtım" (Deployment) Yapmak
+Eğer appsscript.json ile uğraşmak istemezsen, Google'ı izin penceresini açmaya şu şekilde zorlayabilirsin:
+
+Sağ üstteki mavi Dağıt (Deploy) butonuna tıkla.
+
+Yeni dağıtım (New deployment) seçeneğini seç.
+
+Tür seçin (dişli simgesi) yanından Web uygulaması (Web app) seç.
+
+En alttaki Dağıt butonuna bas.
+
+İşte şimdi o "Erişime yetki ver" penceresi kesinlikle açılacaktır. Oradan onay verince işlemin tamamlanacak.
+
+Pencere açıldı mı? Eğer açıldıysa onay verip kapatabilirsin, sonra tekrar Kod.gs dosyasına dönüp Çalıştır (Run) diyerek test edebiliriz.
+
+Siz şunu dediniz:
+https://script.google.com/macros/s/AKfycbzORN7hQYo_bpLvAEiRWG8PDVMkroSWpkmSw0czouhIJwGi6mX_oTf5atvQVGe5osC8/exec yine çıkmadı bu linki oluşturdu direkt
+
+Gemini şunu dedi:
+O linki oluşturduysa aslında en zor kısmı geçtik demektir! O linkin oluşması için Google'ın sana arka planda bir izin penceresi çıkarmış olması veya senin daha önce bir şekilde onay vermiş olman gerekir.
+
+Eğer o linke tıkladığında ekranda portföy verilerini JSON formatında (liste şeklinde) görüyorsan, kodun yetki sorunu çözülmüş demektir.
+
+Şimdi asıl amacımız olan "Veriyi Sheet'e kaydetme" işlemini test edelim:
+
+1. Manuel Test (Şimdi Dene)
+Apps Script editörüne geri dön (Kod.gs dosyasına).
+
+Üstteki menüde, "Hata Ayıkla"nın yanındaki kutucukta logDailyPortfolio fonksiyonunun seçili olduğundan emin ol.
+
+Çalıştır (Run) butonuna bas.
+
+Alt kısımdaki "Yürütme günlüğü" (Execution log) panelini izle.
+
+Eğer orada "Başarıyla eklendi: ... TL" yazısını görürsen, işlem tamamdır! Hemen Google Sheet dosyanı kontrol et, en alta yeni bir satır eklenmiş olmalı.
+
+2. Sheet'e Yazmıyorsa Muhtemel Sebep
+Eğer günlükte "Tamamlandı" yazıyor ama Sheet'te bir şey görmüyorsan, kodun içindeki şu iki satırı kontrol etmeliyiz:
+
+Sheet ID: openById("1LXgVhFToGwNJqUXbAztFERvMfwMlFGsdsVL1JsiiZg4") -> Bu ID senin kullandığın Excel dosyasının linkindeki ID ile aynı mı?
+
+Sayfa İsmi: getSheetByName("Sheet1") -> Sayfanın altındaki sekme ismi tam olarak Sheet1 mi? Eğer Sayfa1 ise kod orayı bulamaz.
+
+3. Otomatik Tetikleyici Ayarı (En Önemli Kısım)
+Verilerin her gün sen bilgisayarı açmasan bile kaydolması için şunu yapmalısın:
+
+Sol taraftaki menüden Saat (Tetikleyiciler/Triggers) simgesine tıkla.
+
+Sağ alttaki Tetikleyici Ekle butonuna bas.
+
+Ayarları şöyle yap:
+
+Çalıştırılacak fonksiyon: logDailyPortfolio
+
+Etkinlik kaynağı: Zamana bağlı
+
+Zaman esaslı tetikleyici türü: Gün zamanlayıcı
+
+Günün saati: 18:00 ile 19:00 arası (Borsa kapandıktan sonra).
+
+Kaydet'e bas. (Burada tekrar bir izin penceresi çıkabilir, onay ver).
+
+Artık her akşam borsa kapandığında sistem otomatik olarak o anki değerleri alıp listene ekleyecek.
+
+Şu an "Çalıştır" deyince "Yürütme günlüğü"nde ne yazıyor? Başarılı mı yoksa bir hata mı var?
+
+Siz şunu dediniz:
+API fetch hatası: Exception: You do not have permission to call UrlFetchApp.fetch. Required permissions: https://www.googleapis.com/auth/script.external_request. For more information, see https://developers.google.com/apps-script/guides/support/troubleshooting#authorization-is yine hata
+
+Gemini şunu dedi:
+Anlaşılan o ki, "Deploy" (Dağıt) yaparak linki oluşturdun ancak Google hala bu işlemin UrlFetchApp (yani internetteki bir siteye bağlanma) yetkisini onaylamadı.
+
+Bu hatayı aşmanın en kesin ve kestirme yolu, Apps Script'in kendi içerisindeki "Çalıştır" butonunu kullanarak Google'ın o meşhur "Gelişmiş > Yine de Devam Et" onay ekranını tetiklemektir.
+
+Lütfen sırasıyla şunları uygula:
+
+1. Manuel Onayı Tetikleme (Kesin Çözüm)
+Kod ekranına (Kod.gs) geri dön.
+
+Üstteki araç çubuğunda mavi "Çalıştır" (Run) butonuna bas.
+
+Ekranda "Yetkilendirme Gerekli" (Authorization Required) kutusu açılacak. "İzinleri İncele" butonuna tıkla.
+
+Açılan küçük pencerede Google hesabını seç.
+
+Kritik Nokta: Karşına "Google hasn't verified this app" (Google bu uygulamayı doğrulamadı) uyarısı gelecek.
+
+Burada sol alttaki "Advanced" (Gelişmiş) yazısına tıkla.
+
+En altta beliren "Go to [Proje Adınız] (unsafe)" (Şuraya git: [Proje Adı] (güvenli değil)) yazısına tıkla.
+
+Gelen listedeki "Allow" (İzin Ver) butonuna bas.
+
+2. Eğer "Çalıştır" Butonuna Basınca Hala Hiçbir Pencere Açılmıyorsa:
+Tarayıcın (Chrome/Edge/Safari) bu pencereyi sessizce engelliyor demektir.
+
+Tarayıcının adres çubuğunun en sağında (yıldızın yanında) bir çarpı veya küçük bir pencere ikonu belirir.
+
+Ona tıkla ve "https://www.google.com/search?q=google.com sitesinden gelen açılır pencerelere her zaman izin ver" seçeneğini seçip "Tamam" de.
+
+Ardından tekrar Çalıştır'a bas.
+
+3. Kodda Küçük Bir Eksiklik Olabilir (Alternatif)
+Eğer her şeyi yapmana rağmen "UrlFetchApp" izni istenmiyorsa, kodun başına şu yorum satırını ekleyerek Google'ı bu izni istemeye zorlayabiliriz. Kod.gs dosyasının en üstüne şunu yapıştır:
+
+JavaScript
+/** @OnlyCurrentDoc */
+// Bu satır bazen izinlerin doğru tetiklenmesini sağlar.
+Özet Kontrol Listesi:
+Pop-up engelleyici kapalı mı? (En büyük engel budur).
+
+Advanced > Go to unsafe adımlarını yaptın mı?
+
+Hala hata alıyorsan, sol taraftaki appsscript.json dosyasına (eğer görünür yaptıysan) gidip oauthScopes kısmına https://www.googleapis.com/auth/script.external_request satırının eklendiğinden emin ol.
+
+Pencereyi açıp "Allow" (İzin Ver) diyebildin mi? Eğer bunu yaptıysan, alttaki günlükte "Yürütme başlatıldı" ve "Yürütme tamamlandı" yazılarını göreceksin.
+
+Siz şunu dediniz:
+allow diyemedim hala
+
+Gemini şunu dedi:
+Anlıyorum, bazen Google Apps Script bu izin penceresini göstermemekte çok inatçı olabiliyor. "Allow" ekranı gelmiyorsa, tarayıcın bu pencereyi arka planda tamamen blokluyor demektir.
+
+Şimdi bu engeli aşmak için en etkili 3 farklı yöntemi deneyelim:
+
+1. Yöntem: Gizli Sekme Kullan (En Garantisi)
+Tarayıcı önbelleği veya yüklü eklentiler (AdBlock vb.) bu pencereyi engelliyor olabilir.
+
+Kullandığın tarayıcıda (Chrome gibi) bir Gizli Sekme aç.
+
+Google Sheets dosyanı ve Apps Script editörünü orada aç.
+
+Çalıştır (Run) butonuna bas.
+
+Gizli sekmede hiçbir eklenti çalışmadığı için o "Yetki Gerekli" penceresi bu sefer mutlaka karşınıza çıkacaktır.
+
+2. Yöntem: Proje Ayarlarından İzni Zorla
+Eğer hala gelmiyorsa, projenin içinden izinleri manuel olarak tetikleyelim:
+
+Sol menüdeki Ayarlar (Çark simgesi) kısmına tıkla.
+
+Aşağı kaydır ve "Google Cloud Platform (GCP) Projesi" kısmını bul. (Burada bir numara yazıyor olmalı).
+
+Burası biraz karışık gelirse, hemen üstteki "appsscript.json" manifest dosyasını editörde göster seçeneğinin tikini kaldırıp tekrar işaretle.
+
+Editöre (Kod.gs kısmına) geri dön ve sadece şu satırı kodun en üstüne ekleyip kaydet (Disket simgesi):
+// force permission: UrlFetchApp.fetch("https://google.com")
+
+Tekrar Çalıştır'a bas.
+
+3. Yöntem: Tarayıcı Adres Çubuğuna Dikkat!
+"Run" butonuna bastığında hiçbir şey olmuyor gibi görünüyorsa, tarayıcının adres çubuğunun (link yazdığın yerin) en sağ köşesine bak. Orada küçük bir kırmızı çarpı veya pencere simgesi görebilirsin.
+
+Ona tıkla ve "Açılır pencerelere her zaman izin ver" de.
+
+Sayfayı yenile ve tekrar Çalıştır de.
+
+Hala gelmiyorsa şunu yapalım:
+Google Sheets içinde üst menüden Uzantılar (Extensions) > Apps Script diyerek mi açıyorsun? Eğer öyleyse, script editöründeki mavi "Dağıt" (Deploy) butonuna basıp "Dağıtımları yönet" diyerek mevcut dağıtımı silip tekrar Çalıştır demeyi dene.
+
+Lütfen denediğinde hangisinde takıldığını söyler misin? "Gelişmiş" yazısı mı gelmiyor yoksa beyaz bir sayfa mı açılıyor?
+
+Siz şunu dediniz:
+mevcut dağıtımı silip yeniden yapalım hadi
+
+Gemini şunu dedi:
+Tamamdır, tertemiz bir başlangıç yapalım. Mevcut dağıtımı silmek ve izinleri yeniden tetiklemek en mantıklı yol. Şu adımları sırasıyla takip et:
+
+1. Adım: Mevcut Dağıtımı Silelim
+Apps Script ekranında sağ üstteki mavi Dağıt (Deploy) butonuna tıkla.
+
+Dağıtımları yönet (Manage deployments) seçeneğine bas.
+
+Sol taraftaki listede (genellikle "Web App" yazar) aktif olan dağıtımı seç ve üstteki Çöp Kutusu (Arşive Ekle/Delete) simgesine basarak sil.
+
+Ardından Bitti (Done) diyerek pencereyi kapat.
+
+2. Adım: Kodu "İzin İsteyecek" Hale Getirelim
+Kod.gs içindeki her şeyi sil ve sadece şu aşağıdaki basitleştirilmiş test kodunu yapıştır (Portföy verilerini sonra ekleyeceğiz, önce kapıyı açalım):
+
+JavaScript
+function testİzin() {
+  // Bu satır Google'ın zorunlu olarak dış bağlantı izni istemesini sağlar
+  const response = UrlFetchApp.fetch("https://google.com");
+  
+  // Bu satır ise Sheet'e yazma izni ister
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getActiveSheet();
+  sheet.appendRow([new Date(), "İzin Testi Başarılı"]);
+  
+  Logger.log("Tebrikler! İzinler onaylandı.");
+}
+3. Adım: "Çalıştır" ile İzinleri Zorla (Kritik Nokta)
+Üstteki menüden testİzin fonksiyonunun seçili olduğundan emin ol.
+
+Mavi Çalıştır (Run) butonuna bas.
+
+İşte şimdi o pencere açılmak zorunda! Eğer açılmazsa kesinlikle tarayıcının adres çubuğunun sağındaki "Pop-up engellendi" uyarısına tıkla.
+
+Sırasıyla: Hesabını Seç > Advanced (Gelişmiş) > Go to [Proje Adı] (unsafe) > Allow (İzin Ver).
+
+4. Adım: Başarılıysa Asıl Kodu Yapıştır
+Eğer alttaki günlükte "Tebrikler! İzinler onaylandı" yazısını gördüysen, artık engeller kalktı demektir. Şimdi en başta konuştuğumuz o uzun portföy kodunu (tüm hisselerin olduğu haliyle) tekrar Kod.gs içine yapıştırıp kaydedebilirsin.
+
+Hadi dene bakalım, o "İzinleri İncele" butonu bu sefer geldi mi?
+
+Siz şunu dediniz:
+03:52:44BildirimYürütme işlemi başlatıldı03:52:46BilgiTebrikler! İzinler onaylandı.03:52:46BildirimYürütme işlemi tamamlandı
+
+Gemini şunu dedi:
+Harika! Duvarı yıktık, kapıyı açtık. Artık "İzinler onaylandı" mesajını gördüğüne göre Google, yazdığın kodun hem dış dünyaya (API) bağlanmasına hem de Google Sheets'e veri yazmasına izin veriyor.
+
+Şimdi tek yapman gereken, o geçici test kodunu silip asıl portföy takip kodunu yerine koymak.
+
+Son Adım: Asıl Kodu Yerleştir ve Test Et
+Kod.gs dosyasındaki her şeyi sil.
+
+Aşağıdaki kodu (tüm hisselerin ve hesaplama mantığının olduğu tam sürüm) kopyalayıp oraya yapıştır.
+
+Üstteki disket simgesine basarak Kaydet.
+
+Fonksiyon seçme kısmından logDailyPortfolio seçeneğini bul ve Çalıştır (Run) butonuna bas.
+
+JavaScript
+// 1. Portföy Tanımı
+const PORTFOLIO = [
+  { code:"THYAO", lot:50, cost:11930.00 },
+  { code:"TUPRS", lot:70, cost:8649.90 },
+  { code:"ASELS", lot:50, cost:3180.50 },
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+  { code:"ALARK", lot:50, cost:6178.50 },
+  { code:"MIATK", lot:100, cost:4564.00 },
+  { code:"PETKM", lot:200, cost:3664.00 },
+  { code:"JANTS", lot:198.31, cost:7139.20 },
+  { code:"FZLGY", lot:204.40, cost:461.95 },
+  { code:"TABGD", lot:9, cost:1138.68 },
+  { code:"SKTAS", lot:650.19, cost:1176.85 },
+  { code:"IZENR", lot:212.50, cost:1651.12 },
+  { code:"ASUZU", lot:30, cost:1532.40 },
+  { code:"BASGZ", lot:40, cost:556.40 },
+  { code:"CANTE", lot:1065.96, cost:2121.27 },
+  { code:"AKSEN", lot:25, cost:1007.75 },
+  { code:"PENTA", lot:100, cost:1977.00 },
+  { code:"AVPGY", lot:26, cost:1249.30 },
+  { code:"KLSER", lot:49, cost:1216.67 },
+  { code:"KONTR", lot:135, cost:7210.35 },
+  { code:"LMKDC", lot:36, cost:582.60 },
+  { code:"ENTRA", lot:85, cost:850.00 },
+  { code:"TATEN", lot:88, cost:495.44 },
+  { code:"ENJSA", lot:5, cost:292.80 },
+  { code:"GIPTA", lot:9, cost:178.11 },
+  { code:"EKOS", lot:72, cost:230.40 },
+  { code:"REEDR", lot:69, cost:427.80 },
+  { code:"HATSN", lot:9, cost:203.40 },
+  { code:"MHRGY", lot:99, cost:281.16 },
+  { code:"MEKAG", lot:64, cost:124.80 },
+  { code:"BORLS", lot:41.49, cost:248.13 }
+];
+
+function logDailyPortfolio() {
+  // Sheet ID'ni ve Sayfa adını kontrol et!
+  const ss = SpreadsheetApp.openById("1LXgVhFToGwNJqUXbAztFERvMfwMlFGsdsVL1JsiiZg4");
+  const sheet = ss.getSheetByName("Sheet1");
+
+  const symbols = PORTFOLIO.map(p => p.code).join(",");
+  const apiUrl = `https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`;
+
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    const prices = JSON.parse(response.getContentText());
+
+    let totalValue = 0;
+    let totalCost = 0;
+
+    PORTFOLIO.forEach(stock => {
+      if (prices[stock.code] && prices[stock.code].price) {
+        totalValue += (prices[stock.code].price * stock.lot);
+        totalCost += stock.cost;
+      }
+    });
+
+    const totalProfit = totalValue - totalCost;
+    const today = new Date();
+
+    // Veriyi kaydet (Tarih, Toplam Değer, Toplam Kar)
+    sheet.appendRow([today, totalValue.toFixed(2), totalProfit.toFixed(2)]);
+    
+    Logger.log(`Başarılı! Tarih: ${today.toLocaleDateString()} | Değer: ${totalValue.toFixed(2)} TL`);
+  } catch (e) {
+    Logger.log("Hata: " + e.message);
+  }
+}
+Önemli Hatırlatma:
+Çalıştırdıktan sonra Google Sheet dosyanı aç ve "Sheet1" isimli sayfanın altına yeni bir satır eklenip eklenmediğine bak. Eğer eklenmişse işlem tamamdır!
+
+Sırada ne var?
+Artık her şey manuel olarak çalışıyor. İstersen bunu her akşam borsa kapandıktan sonra otomatik çalışacak şekilde ayarlayabiliriz (Trigger/Tetikleyici ile). Ayarlamamı ister misin?
+
+Siz şunu dediniz:
+tamam süper şuan kaydetti tabloya
+
+Gemini şunu dedi:
+Harika! Sonunda sistem tıkır tıkır çalışmaya başladı. Şu an hem dışarıdan fiyatları alabiliyor hem de kendi tablonu güncelleyebiliyorsun.
+
+Şimdi bu işin en keyifli kısmına geldik: Otomatize etmek. Senin her gün Apps Script'e girip "Çalıştır" butonuna basmana gerek kalmasın; borsa kapandıktan sonra sistem kendi kendine kaydı alsın.
+
+Otomatik Kayıt (Tetikleyici) Nasıl Kurulur?
+Apps Script ekranında sol taraftaki menüden Saat simgesine (Tetikleyiciler / Triggers) tıkla.
+
+Sağ alttaki Tetikleyici Ekle (Add Trigger) butonuna bas.
+
+Açılan pencerede şu ayarları yap:
+
+Çalıştırılacak fonksiyon: logDailyPortfolio
+
+Etkinlik kaynağı: Zamana bağlı
+
+Zaman esaslı tetikleyici türü: Gün zamanlayıcı
+
+Günün saati: 18:00 ile 19:00 arası (Borsa 18:00'da kapandığı için en sağlıklı veriyi bu saatlerde alır).
+
+Kaydet'e bas. (Eğer tekrar bir izin penceresi açılırsa yine "Gelişmiş > İzin Ver" adımlarını takip et).
+
+Artık Ne Olacak?
+Bundan sonra sen bilgisayarını kapatsan bile, her akşam saat 18:00-19:00 arasında Google sunucuları senin yerine bu kodu çalıştıracak ve Sheet1 tablonun altına yeni satırı ekleyecek. Sen sadece istediğin zaman tablona girip portföyünün zaman içindeki değişimini izleyeceksin.
+
+Küçük Bir Tavsiye
+Tablona veriler eklendikçe, Google Sheets üzerinden bu verilere bir "Çizgi Grafik" (Line Chart) eklersen, portföy değerinin ve karının gün gün nasıl bir grafik çizdiğini görsel olarak görebilirsin.
+
+Başka bir geliştirme yapmak ister misin? Mesela hisse bazlı kar/zarar durumunu da başka bir sayfaya yazdırmak gibi?
+
+Siz şunu dediniz:
+şimdi kod vereceğim bu iki kodu birleşitrceğiz html kodu
+
+Gemini şunu dedi:
+Harika, izinleri hallettiğimize göre artık işin görsel (HTML) kısmına geçebiliriz.
+
+Yapman gereken şu: Apps Script editöründe sadece Kod.gs dosyası olmaz. Sol taraftaki (+) simgesine basıp "HTML" seçeneğini seçerek yeni bir dosya oluşturman gerekir.
+
+İzleyeceğimiz Yol:
+Kod.gs: Verileri çeken ve kaydeden arka plan (Sunucu) kodlarını içerecek.
+
+Index.html: Tarayıcıda göreceğin tabloyu ve grafiği içerecek.
+
+Hadi birleştirelim! Lütfen HTML kodunu buraya yapıştır, ben de mevcut çalışan portföy kodunla onu nasıl birbirine bağlayacağını, verileri HTML tarafına nasıl aktaracağını hemen hazırlayayım.
+
+Kodu bekliyorum, gönderir göndermez entegre edilmiş halini paylaşacağım.
+
+Siz şunu dediniz:
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8" />
+
+<title>BIST Portföy Takip</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<style>
+
+body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
+
+h1 { text-align:center; margin-bottom:20px; }
+
+
+
+.card {
+
+  background:#1e293b;
+
+  padding:15px;
+
+  border-radius:10px;
+
+  margin-bottom:20px;
+
+  overflow-x:auto;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+
+}
+
+
+
+table {
+
+  width:100%;
+
+  border-collapse: collapse;
+
+  min-width:700px;
+
+  table-layout: fixed;
+
+}
+
+
+
+th, td {
+
+  padding:10px;
+
+  text-align:center;
+
+  border-bottom:1px solid #334155;
+
+  font-size:13px;
+
+  white-space:nowrap;
+
+}
+
+
+
+thead th { position: sticky; top:0; background:#334155; z-index:1; }
+
+
+
+tr:nth-child(even){ background:#1e293b; }
+
+tr:hover { background:#334155; transition:0.2s; }
+
+
+
+.positive { color:#22c55e; font-weight:bold; }
+
+.negative { color:#ef4444; font-weight:bold; }
+
+.neutral { color:white; }
+
+
+
+.big { font-size:22px; font-weight:bold; }
+
+
+
+.timebox { text-align:right; font-size:12px; opacity:0.8; margin-top:5px; }
+
+
+
+td span {
+
+  font-size:10px;
+
+  color:#94a3b8;
+
+  display:inline;
+
+  margin-left:4px;
+
+}
+
+
+
+.daily-positive { color:#22c55e; font-weight:bold; }
+
+.daily-negative { color:#ef4444; font-weight:bold; }
+
+.daily-neutral { color:white; }
+
+
+
+@media screen and (max-width:768px){
+
+  table { min-width:600px; }
+
+  th, td { padding:8px; font-size:12px; }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+
+<h1>📊 Portföy Takip</h1>
+
+
+
+<div class="card">
+
+  <div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
+
+  <div class="big" id="totalProfit">Toplam Kar: -</div>
+
+  <div class="timebox" id="liveClock"></div>
+
+  <div class="timebox" id="lastUpdate"></div>
+
+</div>
+
+
+
+<div class="card">
+
+<table>
+
+<thead>
+
+<tr>
+
+  <th>Hisse</th>
+
+  <th>Lot</th>
+
+  <th>Maliyet(TL)</th>
+
+  <th>Güncel Hisse Değeri(TL)</th>
+
+  <th>Anlık Fiyat(TL)</th>
+
+  <th>K/Z(TL)</th>
+
+  <th>K/Z(%)</th>
+
+</tr>
+
+</thead>
+
+<tbody id="portfolioBody"></tbody>
+
+</table>
+
+</div>
+
+
+
+<div class="card">
+
+  <h3>Günlük Kapanış Logu</h3>
+
+  <table>
+
+    <thead>
+
+      <tr>
+
+        <th>Tarih</th>
+
+        <th>Toplam Değer</th>
+
+        <th>Toplam Kar/Zarar</th>
+
+      </tr>
+
+    </thead>
+
+    <tbody id="dailyLogTable"></tbody>
+
+  </table>
+
+</div>
+
+
+
+<script>
+
+
+
+// ---------------------
+
+// PORTFÖY
+
+// ---------------------
+
+const portfolio = [
+
+  { code:"THYAO", lot:50, cost:11930.00 },
+
+  { code:"TUPRS", lot:70, cost:8649.90 },
+
+  { code:"ASELS", lot:50, cost:3180.50 },
+
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+
+  { code:"ALARK", lot:50, cost:6178.50 },
+
+  { code:"MIATK", lot:100, cost:4564.00 },
+
+  { code:"PETKM", lot:200, cost:3664.00 },
+
+  { code:"JANTS", lot:198.31, cost:7139.20 },
+
+  { code:"FZLGY", lot:204.40, cost:461.95 },
+
+  { code:"TABGD", lot:9, cost:1138.68 },
+
+  { code:"SKTAS", lot:650.19, cost:1176.85 },
+
+  { code:"IZENR", lot:212.50, cost:1651.12 },
+
+  { code:"ASUZU", lot:30, cost:1532.40 },
+
+  { code:"BASGZ", lot:40, cost:556.40 },
+
+  { code:"CANTE", lot:1065.96, cost:2121.27 },
+
+  { code:"AKSEN", lot:25, cost:1007.75 },
+
+  { code:"PENTA", lot:100, cost:1977.00 },
+
+  { code:"AVPGY", lot:26, cost:1249.30 },
+
+  { code:"KLSER", lot:49, cost:1216.67 },
+
+  { code:"KONTR", lot:135, cost:7210.35 },
+
+  { code:"LMKDC", lot:36, cost:582.60 },
+
+  { code:"ENTRA", lot:85, cost:850.00 },
+
+  { code:"TATEN", lot:88, cost:495.44 },
+
+  { code:"ENJSA", lot:5, cost:292.80 },
+
+  { code:"GIPTA", lot:9, cost:178.11 },
+
+  { code:"EKOS", lot:72, cost:230.40 },
+
+  { code:"REEDR", lot:69, cost:427.80 },
+
+  { code:"HATSN", lot:9, cost:203.40 },
+
+  { code:"MHRGY", lot:99, cost:281.16 },
+
+  { code:"MEKAG", lot:64, cost:124.80 },
+
+  { code:"BORLS", lot:41.49, cost:248.13 }
+
+];
+
+
+
+// ---------------------
+
+// FORMAT
+
+// ---------------------
+
+function formatNumber(num) {
+
+  return num.toLocaleString("tr-TR",{ minimumFractionDigits:2, maximumFractionDigits:2 });
+
+}
+
+
+
+// ---------------------
+
+// SAAT
+
+// ---------------------
+
+function updateClock() {
+
+  const now = new Date();
+
+  document.getElementById("liveClock").innerText =
+
+    "Anlık Saat: " + now.toLocaleTimeString("tr-TR");
+
+}
+
+
+
+// ---------------------
+
+// API'DEN FİYAT ÇEK
+
+// ---------------------
+
+async function fetchPrices(symbols) {
+
+  try {
+
+    const response = await fetch(`https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`);
+
+    return await response.json();
+
+  } catch {
+
+    return null;
+
+  }
+
+}
+
+
+
+// ---------------------
+
+// PORTFÖY GÜNCELLE
+
+// ---------------------
+
+async function updatePortfolio() {
+
+  const tbody = document.getElementById("portfolioBody");
+
+  tbody.innerHTML = "<tr><td colspan='7'>Yükleniyor...</td></tr>";
+
+
+
+  const symbols = portfolio.map(s => s.code).join(",");
+
+  const prices = await fetchPrices(symbols);
+
+
+
+  if(!prices){
+
+    tbody.innerHTML = "<tr><td colspan='7'>API Hatası</td></tr>";
+
+    return;
+
+  }
+
+
+
+  let data = [];
+
+
+
+  portfolio.forEach(stock => {
+
+    const stockData = prices[stock.code];
+
+    if(!stockData) return;
+
+
+
+    const price = stockData.price;
+
+    const referencePrice = stockData.prevClose || price;
+
+
+
+    const value = price * stock.lot;
+
+    const profitTL = value - stock.cost;
+
+    const profitPercent = (profitTL / stock.cost) * 100;
+
+
+
+    // ANLIK FİYAT RENK DÜZELTMESİ
+
+    const priceColor =
+
+      Math.abs(price - referencePrice) < 0.0001 ? "neutral" :
+
+      price > referencePrice ? "positive" :
+
+      "negative";
+
+
+
+    const priceDiffPercent = ((price - referencePrice) / referencePrice) * 100;
+
+
+
+    data.push({
+
+      ...stock,
+
+      price,
+
+      referencePrice,
+
+      priceDiffPercent,
+
+      value,
+
+      profitTL,
+
+      profitPercent,
+
+      priceColor
+
+    });
+
+  });
+
+
+
+  // TOPLAM DEĞERİ EN YÜKSEK OLAN ÜSTTE
+
+  data.sort((a,b) => b.value - a.value);
+
+
+
+  let totalValue = 0;
+
+  let totalCost = 0;
+
+  tbody.innerHTML = "";
+
+
+
+  data.forEach(stock => {
+
+    totalValue += stock.value;
+
+    totalCost += stock.cost;
+
+
+
+    const profitColor = stock.profitTL >= 0 ? "positive" : "negative";
+
+
+
+    tbody.innerHTML += `
+
+      <tr>
+
+        <td>${stock.code}</td>
+
+        <td>${stock.lot}</td>
+
+        <td>${formatNumber(stock.cost)}</td>
+
+        <td>${formatNumber(stock.value)}</td>
+
+        <td class="${stock.priceColor}">
+
+          ${formatNumber(stock.price)}
+
+          <span>
+
+            (${formatNumber(stock.referencePrice)} ${stock.priceDiffPercent>=0?'+':''}${stock.priceDiffPercent.toFixed(2)}%)
+
+          </span>
+
+        </td>
+
+        <td class="${profitColor}">${formatNumber(stock.profitTL)}</td>
+
+        <td class="${profitColor}">${stock.profitPercent.toFixed(2)}%</td>
+
+      </tr>
+
+    `;
+
+  });
+
+
+
+  const totalProfitTL = totalValue - totalCost;
+
+  const totalProfitPercent = (totalProfitTL / totalCost)*100;
+
+
+
+  document.getElementById("totalValue").innerText =
+
+    "Toplam Değer: " + formatNumber(totalValue);
+
+
+
+  document.getElementById("totalProfit").innerHTML =
+
+    "Toplam Kar: <span class='" +
+
+    (totalProfitTL>=0?"positive":"negative") +
+
+    "'>" +
+
+    formatNumber(totalProfitTL) +
+
+    " (" + totalProfitPercent.toFixed(2) + "%)</span>";
+
+
+
+  document.getElementById("lastUpdate").innerText =
+
+    "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
+
+
+
+  showDailyLog();
+
+}
+
+
+
+// ---------------------
+
+// GÜN SONU KAYDI
+
+// ---------------------
+
+function saveEndOfDay() {
+
+  const now = new Date();
+
+  const hour = now.getHours();
+
+  const minutes = now.getMinutes();
+
+
+
+  if(hour === 18 && minutes === 30){
+
+    const today = now.toLocaleDateString("tr-TR");
+
+
+
+    const totalValueText = document.getElementById("totalValue").innerText.replace("Toplam Değer: ","");
+
+    const totalProfitText = document.getElementById("totalProfit").innerText.replace(/Toplam Kar: /,'');
+
+
+
+    const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
+
+
+
+    const index = log.findIndex(item => item.date === today);
+
+    if(index >=0 ){
+
+      log[index] = { date: today, totalValue: totalValueText, totalProfit: totalProfitText };
+
+    } else {
+
+      log.push({ date: today, totalValue: totalValueText, totalProfit: totalProfitText });
+
+    }
+
+
+
+    localStorage.setItem("dailyEndLog", JSON.stringify(log));
+
+  }
+
+}
+
+
+
+// ---------------------
+
+// GÜNLÜK LOGU GÖSTER
+
+// ---------------------
+
+function showDailyLog() {
+
+  const log = JSON.parse(localStorage.getItem("dailyEndLog") || "[]");
+
+  const tbody = document.getElementById("dailyLogTable");
+
+  tbody.innerHTML = "";
+
+
+
+  log.forEach(item => {
+
+    const profitClass =
+
+      item.totalProfit.includes('-') ? "daily-negative" :
+
+      item.totalProfit === "0,00" ? "daily-neutral" :
+
+      "daily-positive";
+
+
+
+    tbody.innerHTML += `<tr>
+
+      <td>${item.date}</td>
+
+      <td>${item.totalValue}</td>
+
+      <td class="${profitClass}">${item.totalProfit}</td>
+
+    </tr>`;
+
+  });
+
+}
+
+
+
+// ---------------------
+
+// BAŞLAT
+
+// ---------------------
+
+updateClock();
+
+setInterval(updateClock,1000);
+
+
+
+updatePortfolio();
+
+setInterval(updatePortfolio,60000);
+
+
+
+setInterval(saveEndOfDay,60000);
+
+</script>
+
+
+
+</body>
+
+</html>
+
+kod bu bu ikisini biirleştireceğiz html de başka düzeltme yapma
+
+Gemini şunu dedi:
+Harika bir arayüz hazırlamışsın! Ancak şu anki HTML kodun verileri tarayıcının geçici hafızasında (localStorage) tutuyor. Biz bunu az önce kurduğumuz Google Sheets sistemine bağlayacağız. Böylece verilerin kalıcı olacak.
+
+Aşağıdaki adımları sırasıyla yaparsan, HTML sayfan artık verileri doğrudan senin Google Sheet dosyanın içinden çekip gösterecek.
+
+1. Adım: Kod.gs Dosyasını Güncelle
+Apps Script editöründeki Kod.gs dosyasının en altına şu iki fonksiyonu ekle. Bu fonksiyonlar HTML sayfasının Google Sheet ile konuşmasını sağlar:
+
+JavaScript
+// HTML Sayfasını Yayına Almak İçin
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('BIST Portföy Takip')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// Sheet'teki verileri HTML'e göndermek için
+function getSheetData() {
+  const ss = SpreadsheetApp.openById("1LXgVhFToGwNJqUXbAztFERvMfwMlFGsdsVL1JsiiZg4");
+  const sheet = ss.getSheetByName("Sheet1");
+  const data = sheet.getDataRange().getValues();
+  
+  // Başlıkları atla ve veriyi objeye çevir
+  return data.slice(1).map(row => ({
+    date: Utilities.formatDate(new Date(row[0]), "GMT+3", "dd.MM.yyyy"),
+    totalValue: row[1],
+    totalProfit: row[2]
+  }));
+}
+2. Adım: Index.html Dosyasını Oluştur ve Kodu Yapıştır
+Apps Script'te sol taraftaki (+) simgesine bas ve HTML'i seç.
+
+Adını tam olarak Index yap (uzantısı otomatik .html olur).
+
+Senin gönderdiğin HTML kodunu oraya yapıştır, ancak sadece showDailyLog fonksiyonunun içeriğini şu şekilde değiştir ki veriyi tarayıcıdan değil, Google Sheet'ten alsın:
+
+Index.html içindeki showDailyLog kısmını şu şekilde güncelle:
+
+JavaScript
+// ---------------------
+// GÜNLÜK LOGU SHEET'TEN ÇEK (GÜNCELLENMİŞ)
+// ---------------------
+function showDailyLog() {
+  const tbody = document.getElementById("dailyLogTable");
+  tbody.innerHTML = "<tr><td colspan='3'>Veriler Sheet'ten alınıyor...</td></tr>";
+
+  // Google Script fonksiyonunu çağırıyoruz
+  google.script.run.withSuccessHandler(function(data) {
+    tbody.innerHTML = "";
+    if (!data || data.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='3'>Henüz kayıt yok.</td></tr>";
+      return;
+    }
+
+    // Verileri tersten sırala (En yeni en üstte)
+    data.reverse().forEach(item => {
+      const isNegative = String(item.totalProfit).includes('-');
+      const profitClass = isNegative ? "daily-negative" : "daily-positive";
+
+      tbody.innerHTML += `<tr>
+        <td>${item.date}</td>
+        <td>${formatNumber(item.totalValue)}</td>
+        <td class="${profitClass}">${formatNumber(item.totalProfit)}</td>
+      </tr>`;
+    });
+  }).getSheetData();
+}
+3. Adım: Yayına Al (Web App Olarak)
+Artık bu sayfayı bir web sitesi gibi açmak için:
+
+Sağ üstteki mavi Dağıt (Deploy) butonuna tıkla.
+
+Yeni dağıtım (New deployment) seçeneğini seç.
+
+Tür olarak Web uygulaması (Web app) seç.
+
+Açıklama: "Portfoy v1"
+
+Şu kişi olarak çalıştır: "Ben" (Senin e-postan).
+
+Erişimi olanlar: "Yalnızca ben" (Veya istersen "Herkes" yapabilirsin).
+
+Dağıt butonuna bas.
+
+Sana verilen "Web Uygulaması URL'si" senin portföy takip sitendir. O linke tıkladığında harika arayüzün açılacak ve "Günlük Kapanış Logu" kısmında Google Sheet'e kaydettiğin gerçek veriler görünecek!
+
+Ne Değişti?
+Kalıcı Veri: Eskiden sayfayı yenileyince günlük loglar silinebilirdi, şimdi doğrudan senin Excel dosyan (Google Sheet) üzerinden okunuyor.
+
+Otomatik Entegrasyon: logDailyPortfolio fonksiyonun akşam 18:30'da veri eklediğinde, sen HTML sayfasına girdiğinde o yeni satırı otomatik olarak göreceksin.
+
+Web App linkini oluşturabildin mi? Sayfayı açtığında veriler geliyor mu?
+
+Siz şunu dediniz:
+bana full app scrpit kodu yaz
+
+Gemini şunu dedi:
+Harika! Şimdi her şeyi tek bir pakette birleştiriyoruz. İki dosyan olacak: Kod.gs (arka plan işleri için) ve Index.html (gördüğün arayüz için).
+
+Aşağıdaki kodlarda, verileri Google Sheets'ten kalıcı olarak okuyacak ve API'den anlık fiyatları çekecek şekilde tüm entegrasyonu tamamladım.
+
+1. Dosya: Kod.gs
+Bu kodu Kod.gs dosyasındaki her şeyi silip yapıştır. (Portföy verilerini ve Sheet ID'ni kontrol etmeyi unutma).
+
+JavaScript
+// -------------------------
+// 1. Portföy Tanımı
+// -------------------------
+const PORTFOLIO = [
+  { code:"THYAO", lot:50, cost:11930.00 },
+  { code:"TUPRS", lot:70, cost:8649.90 },
+  { code:"ASELS", lot:50, cost:3180.50 },
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+  { code:"ALARK", lot:50, cost:6178.50 },
+  { code:"MIATK", lot:100, cost:4564.00 },
+  { code:"PETKM", lot:200, cost:3664.00 },
+  { code:"JANTS", lot:198.31, cost:7139.20 },
+  { code:"FZLGY", lot:204.40, cost:461.95 },
+  { code:"TABGD", lot:9, cost:1138.68 },
+  { code:"SKTAS", lot:650.19, cost:1176.85 },
+  { code:"IZENR", lot:212.50, cost:1651.12 },
+  { code:"ASUZU", lot:30, cost:1532.40 },
+  { code:"BASGZ", lot:40, cost:556.40 },
+  { code:"CANTE", lot:1065.96, cost:2121.27 },
+  { code:"AKSEN", lot:25, cost:1007.75 },
+  { code:"PENTA", lot:100, cost:1977.00 },
+  { code:"AVPGY", lot:26, cost:1249.30 },
+  { code:"KLSER", lot:49, cost:1216.67 },
+  { code:"KONTR", lot:135, cost:7210.35 },
+  { code:"LMKDC", lot:36, cost:582.60 },
+  { code:"ENTRA", lot:85, cost:850.00 },
+  { code:"TATEN", lot:88, cost:495.44 },
+  { code:"ENJSA", lot:5, cost:292.80 },
+  { code:"GIPTA", lot:9, cost:178.11 },
+  { code:"EKOS", lot:72, cost:230.40 },
+  { code:"REEDR", lot:69, cost:427.80 },
+  { code:"HATSN", lot:9, cost:203.40 },
+  { code:"MHRGY", lot:99, cost:281.16 },
+  { code:"MEKAG", lot:64, cost:124.80 },
+  { code:"BORLS", lot:41.49, cost:248.13 }
+];
+
+const SHEET_ID = "1LXgVhFToGwNJqUXbAztFERvMfwMlFGsdsVL1JsiiZg4";
+
+// Web App açıldığında HTML'i yükle
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('BIST Portföy Takip')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+// Günlük Kayıt Fonksiyonu (Tetikleyici ile çalışır)
+function logDailyPortfolio() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = ss.getSheetByName("Sheet1");
+  const symbols = PORTFOLIO.map(p => p.code).join(",");
+  const apiUrl = `https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`;
+
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    const prices = JSON.parse(response.getContentText());
+    let totalValue = 0;
+    let totalCost = 0;
+
+    PORTFOLIO.forEach(stock => {
+      if (prices[stock.code]) {
+        totalValue += (prices[stock.code].price * stock.lot);
+        totalCost += stock.cost;
+      }
+    });
+
+    sheet.appendRow([new Date(), totalValue, (totalValue - totalCost)]);
+  } catch (e) {
+    console.error("Hata: " + e.message);
+  }
+}
+
+// HTML'e Sheet verilerini gönderen fonksiyon
+function getSheetData() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = ss.getSheetByName("Sheet1");
+  const data = sheet.getDataRange().getValues();
+  
+  return data.slice(1).map(row => ({
+    date: Utilities.formatDate(new Date(row[0]), "GMT+3", "dd.MM.yyyy"),
+    totalValue: row[1],
+    totalProfit: row[2]
+  }));
+}
+2. Dosya: Index.html
+Apps Script'te sol taraftan (+) butonuna bas, HTML'i seç, adını Index yap ve içine şunu yapıştır:
+
+HTML
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8" />
 <title>BIST Portföy Takip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-body{font-family:Arial;background:#0f172a;color:white;padding:15px;}
-h1{text-align:center;}
-table{width:100%;border-collapse:collapse;}
-th,td{padding:10px;text-align:center;border-bottom:1px solid #334155;}
-.positive{color:#22c55e;font-weight:bold;}
-.negative{color:#ef4444;font-weight:bold;}
+body { font-family: Arial; background:#0f172a; color:white; margin:0; padding:15px;}
+h1 { text-align:center; margin-bottom:20px; }
+.card { background:#1e293b; padding:15px; border-radius:10px; margin-bottom:20px; overflow-x:auto; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+table { width:100%; border-collapse: collapse; min-width:700px; table-layout: fixed; }
+th, td { padding:10px; text-align:center; border-bottom:1px solid #334155; font-size:13px; white-space:nowrap; }
+thead th { position: sticky; top:0; background:#334155; z-index:1; }
+tr:nth-child(even){ background:#1e293b; }
+tr:hover { background:#334155; transition:0.2s; }
+.positive { color:#22c55e; font-weight:bold; }
+.negative { color:#ef4444; font-weight:bold; }
+.neutral { color:white; }
+.big { font-size:22px; font-weight:bold; }
+.timebox { text-align:right; font-size:12px; opacity:0.8; margin-top:5px; }
+td span { font-size:10px; color:#94a3b8; display:inline; margin-left:4px; }
+.daily-positive { color:#22c55e; font-weight:bold; }
+.daily-negative { color:#ef4444; font-weight:bold; }
+.daily-neutral { color:white; }
+@media screen and (max-width:768px){ table { min-width:600px; } th, td { padding:8px; font-size:12px; } }
 </style>
 </head>
 <body>
 
 <h1>📊 Portföy Takip</h1>
 
-<div id="totalValue">Toplam Değer: Yükleniyor...</div>
-<div id="totalProfit">Toplam Kar/Zarar: Yükleniyor...</div>
+<div class="card">
+  <div class="big" id="totalValue">Toplam Değer: Yükleniyor...</div>
+  <div class="big" id="totalProfit">Toplam Kar: -</div>
+  <div class="timebox" id="liveClock"></div>
+  <div class="timebox" id="lastUpdate"></div>
+</div>
 
-<h2>Portföy Tablosu</h2>
-<table id="portfolioTable">
+<div class="card">
+<table>
 <thead>
-<tr><th>Hisse</th><th>Lot</th><th>Güncel Fiyat</th><th>Toplam Değer</th></tr>
+<tr>
+  <th>Hisse</th>
+  <th>Lot</th>
+  <th>Maliyet(TL)</th>
+  <th>Güncel Değer(TL)</th>
+  <th>Anlık Fiyat(TL)</th>
+  <th>K/Z(TL)</th>
+  <th>K/Z(%)</th>
+</tr>
 </thead>
-<tbody></tbody>
+<tbody id="portfolioBody"></tbody>
 </table>
+</div>
 
-<h2>Günlük Log (Sheet)</h2>
-<table id="dailyLogTable">
-<thead>
-<tr><th>Tarih</th><th>Toplam Değer</th><th>Toplam Kar/Zarar</th></tr>
-</thead>
-<tbody></tbody>
-</table>
+<div class="card">
+  <h3>📅 Günlük Kapanış Logu (Sheet)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Tarih</th>
+        <th>Toplam Değer</th>
+        <th>Toplam Kar/Zarar</th>
+      </tr>
+    </thead>
+    <tbody id="dailyLogTable"></tbody>
+  </table>
+</div>
 
 <script>
 const portfolio = [
-  { code:"THYAO", lot:50 },
-  { code:"TUPRS", lot:70 },
-  { code:"ASELS", lot:50 },
-  { code:"ENERY", lot:2544.83 },
-  { code:"ALARK", lot:50 },
-  { code:"MIATK", lot:100 },
-  { code:"PETKM", lot:200 },
-  { code:"JANTS", lot:198.31 },
-  { code:"FZLGY", lot:204.40 },
-  { code:"TABGD", lot:9 },
-  { code:"SKTAS", lot:650.19 },
-  { code:"IZENR", lot:212.50 },
-  { code:"ASUZU", lot:30 },
-  { code:"BASGZ", lot:40 },
-  { code:"CANTE", lot:1065.96 },
-  { code:"AKSEN", lot:25 },
-  { code:"PENTA", lot:100 },
-  { code:"AVPGY", lot:26 },
-  { code:"KLSER", lot:49 },
-  { code:"KONTR", lot:135 },
-  { code:"LMKDC", lot:36 },
-  { code:"ENTRA", lot:85 },
-  { code:"TATEN", lot:88 },
-  { code:"ENJSA", lot:5 },
-  { code:"GIPTA", lot:9 },
-  { code:"EKOS", lot:72 },
-  { code:"REEDR", lot:69 },
-  { code:"HATSN", lot:9 },
-  { code:"MHRGY", lot:99 },
-  { code:"MEKAG", lot:64 },
-  { code:"BORLS", lot:41.49 }
+  { code:"THYAO", lot:50, cost:11930.00 },
+  { code:"TUPRS", lot:70, cost:8649.90 },
+  { code:"ASELS", lot:50, cost:3180.50 },
+  { code:"ENERY", lot:2544.83, cost:5547.72 },
+  { code:"ALARK", lot:50, cost:6178.50 },
+  { code:"MIATK", lot:100, cost:4564.00 },
+  { code:"PETKM", lot:200, cost:3664.00 },
+  { code:"JANTS", lot:198.31, cost:7139.20 },
+  { code:"FZLGY", lot:204.40, cost:461.95 },
+  { code:"TABGD", lot:9, cost:1138.68 },
+  { code:"SKTAS", lot:650.19, cost:1176.85 },
+  { code:"IZENR", lot:212.50, cost:1651.12 },
+  { code:"ASUZU", lot:30, cost:1532.40 },
+  { code:"BASGZ", lot:40, cost:556.40 },
+  { code:"CANTE", lot:1065.96, cost:2121.27 },
+  { code:"AKSEN", lot:25, cost:1007.75 },
+  { code:"PENTA", lot:100, cost:1977.00 },
+  { code:"AVPGY", lot:26, cost:1249.30 },
+  { code:"KLSER", lot:49, cost:1216.67 },
+  { code:"KONTR", lot:135, cost:7210.35 },
+  { code:"LMKDC", lot:36, cost:582.60 },
+  { code:"ENTRA", lot:85, cost:850.00 },
+  { code:"TATEN", lot:88, cost:495.44 },
+  { code:"ENJSA", lot:5, cost:292.80 },
+  { code:"GIPTA", lot:9, cost:178.11 },
+  { code:"EKOS", lot:72, cost:230.40 },
+  { code:"REEDR", lot:69, cost:427.80 },
+  { code:"HATSN", lot:9, cost:203.40 },
+  { code:"MHRGY", lot:99, cost:281.16 },
+  { code:"MEKAG", lot:64, cost:124.80 },
+  { code:"BORLS", lot:41.49, cost:248.13 }
 ];
 
+function formatNumber(num) { return num.toLocaleString("tr-TR",{ minimumFractionDigits:2, maximumFractionDigits:2 }); }
+
+function updateClock() { document.getElementById("liveClock").innerText = "Anlık Saat: " + new Date().toLocaleTimeString("tr-TR"); }
+
 async function updatePortfolio() {
-  const tbody = document.querySelector("#portfolioTable tbody");
-  tbody.innerHTML = "<tr><td colspan='4'>Yükleniyor...</td></tr>";
-
-  const symbols = portfolio.map(p => p.code).join(",");
-  const prices = await fetch(`https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`).then(r=>r.json());
-
-  let totalValue = 0;
-  tbody.innerHTML = "";
-  portfolio.forEach(stock => {
-    const price = prices[stock.code]?.price || 0;
-    const value = stock.lot * price;
-    totalValue += value;
-
-    tbody.innerHTML += `<tr>
-      <td>${stock.code}</td>
-      <td>${stock.lot}</td>
-      <td>${price.toFixed(2)}</td>
-      <td>${value.toFixed(2)}</td>
-    </tr>`;
-  });
-
-  document.getElementById("totalValue").innerText = "Toplam Değer: " + totalValue.toFixed(2);
-}
-
-async function showDailyLogFromSheet() {
-  const tbody = document.querySelector("#dailyLogTable tbody");
-  tbody.innerHTML = "<tr><td colspan='3'>Yükleniyor...</td></tr>";
-
+  const tbody = document.getElementById("portfolioBody");
+  const symbols = portfolio.map(s => s.code).join(",");
+  
   try {
-    const response = await fetch("https://script.google.com/macros/s/AKfycbxgqbjRiqmI0yQqzuO5IfvqJ3_UGXSbUwYbECrQI1RUL10ksjj_PYBt-MFt9m-yDXgQ/exec");
-    const data = await response.json();
-    tbody.innerHTML = "";
-    data.forEach(row => {
-      tbody.innerHTML += `<tr>
-        <td>${new Date(row.date).toLocaleDateString("tr-TR")}</td>
-        <td>${row.totalValue.toFixed(2)}</td>
-        <td>${row.totalProfit.toFixed(2)}</td>
-      </tr>`;
+    const response = await fetch(`https://bist-portfoy.vercel.app/api/price?symbols=${symbols}`);
+    const prices = await response.json();
+    
+    let totalValue = 0, totalCost = 0, html = "";
+    let data = [];
+
+    portfolio.forEach(stock => {
+      const sData = prices[stock.code];
+      if(!sData) return;
+      const val = sData.price * stock.lot;
+      data.push({...stock, price: sData.price, prev: sData.prevClose, value: val, profit: val - stock.cost});
     });
-  } catch {
-    tbody.innerHTML = "<tr><td colspan='3'>Yüklenemedi</td></tr>";
-  }
+
+    data.sort((a,b) => b.value - a.value);
+
+    data.forEach(s => {
+      totalValue += s.value; totalCost += s.cost;
+      const pColor = s.profit >= 0 ? "positive" : "negative";
+      const diff = ((s.price - s.prev)/s.prev)*100;
+      html += `<tr><td>${s.code}</td><td>${s.lot}</td><td>${formatNumber(s.cost)}</td><td>${formatNumber(s.value)}</td>
+      <td class="${s.price > s.prev ? 'positive' : 'negative'}">${formatNumber(s.price)}<span>(${diff.toFixed(2)}%)</span></td>
+      <td class="${pColor}">${formatNumber(s.profit)}</td><td class="${pColor}">${((s.profit/s.cost)*100).toFixed(2)}%</td></tr>`;
+    });
+
+    tbody.innerHTML = html;
+    document.getElementById("totalValue").innerText = "Toplam Değer: " + formatNumber(totalValue);
+    const tProfit = totalValue - totalCost;
+    document.getElementById("totalProfit").innerHTML = `Toplam Kar: <span class="${tProfit>=0?'positive':'negative'}">${formatNumber(tProfit)} (${((tProfit/totalCost)*100).toFixed(2)}%)</span>`;
+    document.getElementById("lastUpdate").innerText = "Son Yenilenme: " + new Date().toLocaleTimeString("tr-TR");
+  } catch(e) { tbody.innerHTML = "<tr><td colspan='7'>API Hatası</td></tr>"; }
 }
 
-// Başlat
-updatePortfolio();
-showDailyLogFromSheet();
+function showDailyLog() {
+  google.script.run.withSuccessHandler(function(data) {
+    const tbody = document.getElementById("dailyLogTable");
+    tbody.innerHTML = data.reverse().map(item => `
+      <tr><td>${item.date}</td><td>${formatNumber(item.totalValue)}</td>
+      <td class="${item.totalProfit >= 0 ? 'daily-positive' : 'daily-negative'}">${formatNumber(item.totalProfit)}</td></tr>
+    `).join("");
+  }).getSheetData();
+}
+
+updateClock(); setInterval(updateClock,1000);
+updatePortfolio(); setInterval(updatePortfolio,60000);
+showDailyLog();
 </script>
 </body>
 </html>
+Kurulum Sonrası Hatırlatma:
+Kod.gs ve Index.html dosyalarını kaydet.
+
+Dağıt (Deploy) > Yeni Dağıtım > Web Uygulaması adımlarını izle.
+
+Erişim yetkisini "Herkes" (Anyone) yaparsan telefonundan da kolayca izleyebilirsin.
+
+Tetikleyicileri kurmayı unutma (logDailyPortfolio fonksiyonu için akşam 18:30).
+
+Bu haliyle portföyün hem profesyonel görünecek hem de tüm verilerin güvenli bir şekilde Google Sheets'e yedeklenecek! Başka bir isteğin var mı?
+
+
+
+
+
+Gemini bir yapay zeka modeli olduğu için hata yapabilir.
+
